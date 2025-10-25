@@ -1,32 +1,30 @@
 package com.example.PersonalFinanceManager.model;
 
 import jakarta.persistence.*;
-import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+
 import java.time.LocalDateTime;
-import java.util.Set;
 
 @Entity
 @Table(name = "accounts")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Account {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @ManyToOne
+    @JoinColumn(name="user_id", nullable=false)
     private User user;
 
+    @Column(nullable=false)
     private String name;
 
-    private Double balance;
+    @Column(columnDefinition="DECIMAL(15,2) DEFAULT 0.00")
+    private Double balance = 0.0;
 
-    private String currency;
+    @Column(length=10)
+    private String currency = "VND";
 
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -34,6 +32,24 @@ public class Account {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "account", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<Transaction> transactions;
+    public Account() {}
+
+    // Getters và Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
+
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+
+    public Double getBalance() { return balance; }
+    public void setBalance(Double balance) { this.balance = balance; }
+
+    public String getCurrency() { return currency; }
+    public void setCurrency(String currency) { this.currency = currency; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
 }
