@@ -15,27 +15,39 @@ public class AccountService implements AccountServiceImpl {
 
     @Override
     public Account createAccount(Account account) {
-        return null;
+        return accountRepository.save(account);
     }
 
     @Override
     public Optional<Account> getAccountById(Long id) {
-        return Optional.empty();
+        return accountRepository.findById(id);
     }
 
     @Override
     public List<Account> getAllAccounts() {
-        return List.of();
+        return accountRepository.findAll();
     }
 
     @Override
     public Account updateAccount(Long id, Account account) {
-        return null;
+        return accountRepository.findById(id).map(existing->
+        {
+            existing.setId(account.getId());
+            existing.setUser(account.getUser());
+            existing.setName(account.getName());
+            existing.setBalance(account.getBalance());
+            existing.setCurrency(account.getCurrency());
+            return accountRepository.save(existing);
+        }).orElseThrow(() -> new RuntimeException("Account not found"));
     }
 
     @Override
     public void deleteAccount(Long id) {
-
+        if(accountRepository.existsById(id))
+        {
+            throw new RuntimeException("Account not found");
+        }
+        accountRepository.deleteById(id);
     }
 }
 

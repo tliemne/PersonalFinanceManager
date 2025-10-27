@@ -1,5 +1,6 @@
 package com.example.PersonalFinanceManager.controller;
 
+import com.example.PersonalFinanceManager.dto.UserDTO;
 import com.example.PersonalFinanceManager.model.User;
 import com.example.PersonalFinanceManager.service.UserService;
 import jakarta.validation.Valid;
@@ -8,38 +9,46 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("api/user")
 public class UserController {
+
     @Autowired
     private UserService userService;
-    @PostMapping
-    public ResponseEntity<User> createUser(@Valid @RequestBody User user) {
+
+    // CREATE
+    @PostMapping(consumes = "application/json", produces = "application/json")
+    public ResponseEntity<UserDTO> createUser(@Valid @RequestBody User user) {
         User createdUser = userService.createUser(user);
-        return ResponseEntity.ok(createdUser);
+        return ResponseEntity.ok(new UserDTO(createdUser));
     }
 
     // READ ALL
     @GetMapping
-    public ResponseEntity<List<User>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+    public ResponseEntity<List<UserDTO>> getAllUsers() {
+        List<UserDTO> users = userService.getAllUsers()
+                .stream()
+                .map(UserDTO::new)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(users);
     }
 
     // READ BY ID
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
+    public ResponseEntity<UserDTO> getUserById(@PathVariable Long id) {
         return userService.getUserById(id)
-                .map(ResponseEntity::ok)
+                .map(user -> ResponseEntity.ok(new UserDTO(user)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
     // UPDATE
     @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @Valid @RequestBody User user) {
+    public ResponseEntity<UserDTO> updateUser(@PathVariable Long id, @Valid @RequestBody User user) {
         try {
             User updatedUser = userService.updateUser(id, user);
-            return ResponseEntity.ok(updatedUser);
+            return ResponseEntity.ok(new UserDTO(updatedUser));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
         }
