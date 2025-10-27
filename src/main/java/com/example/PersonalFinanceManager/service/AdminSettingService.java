@@ -29,8 +29,8 @@ public class AdminSettingService implements AdminSettingServiceImpl {
     @Override
     public AdminSetting updateAdminSetting(Long id, AdminSetting adminSetting) {
         return adminSettingRepository.findById(id).map(existing -> {
-            existing.setSettingKey(existing.getSettingKey());
-            existing.setSettingValue(existing.getSettingValue());
+            existing.setSettingKey(adminSetting.getSettingKey());
+            existing.setSettingValue(adminSetting.getSettingValue());
             return adminSettingRepository.save(existing);
         }).orElseThrow(() -> new RuntimeException("AdminSetting not found with id: " + id));
 

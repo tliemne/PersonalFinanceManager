@@ -32,8 +32,6 @@ public class AccountService implements AccountServiceImpl {
     public Account updateAccount(Long id, Account account) {
         return accountRepository.findById(id).map(existing->
         {
-            existing.setId(account.getId());
-            existing.setUser(account.getUser());
             existing.setName(account.getName());
             existing.setBalance(account.getBalance());
             existing.setCurrency(account.getCurrency());
