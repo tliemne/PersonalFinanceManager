@@ -41,7 +41,7 @@ public class AccountService implements AccountServiceImpl {
 
     @Override
     public void deleteAccount(Long id) {
-        if(accountRepository.existsById(id))
+        if(!accountRepository.existsById(id))
         {
             throw new RuntimeException("Account not found");
         }
