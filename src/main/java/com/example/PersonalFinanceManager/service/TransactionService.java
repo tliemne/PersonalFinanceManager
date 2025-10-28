@@ -15,26 +15,36 @@ public class TransactionService implements TransactionServiceImpl {
 
     @Override
     public Transaction createTransaction(Transaction transaction) {
-        return null;
+        return transactionRepository.save(transaction);
     }
 
     @Override
     public Optional<Transaction> getTransactionById(Long id) {
-        return Optional.empty();
+        return transactionRepository.findById(id);
     }
 
     @Override
     public List<Transaction> getAllTransactions() {
-        return List.of();
+        return transactionRepository.findAll();
     }
 
     @Override
     public Transaction updateTransaction(Long id, Transaction transaction) {
-        return null;
+        return transactionRepository.findById(id).map(e->{
+            e.setAmount(e.getAmount());
+            e.setTransactionType(e.getTransactionType());
+            e.setDescription(e.getDescription());
+            e.setTransactionDate(e.getTransactionDate());
+            e.setStatus(e.getStatus());
+            e.setIsDeleted(e.getIsDeleted());
+            return  transactionRepository.save(e);
+        }).orElseThrow(()-> new RuntimeException("not found"));
     }
-
     @Override
     public void deleteTransaction(Long id) {
-
+        transactionRepository.findById(id).ifPresent(e->{
+            e.setIsDeleted(true);
+            transactionRepository.save(e);
+        });
     }
 }

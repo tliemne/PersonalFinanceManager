@@ -3,10 +3,11 @@ package com.example.PersonalFinanceManager.service;
 import com.example.PersonalFinanceManager.model.Role;
 import com.example.PersonalFinanceManager.repository.RoleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
-
+@Service
 public class RoleService implements RoleServiceImpl{
     @Autowired
     private RoleRepository roleRepository;
@@ -30,13 +31,16 @@ public class RoleService implements RoleServiceImpl{
     public Role updateRole(Long id, Role role) {
         return roleRepository.findById(id).map(existing -> {
             existing.setName(role.getName());
-
             return roleRepository.save(existing);
         }).orElseThrow(() -> new RuntimeException("Role not found"));
     }
 
     @Override
     public void deleteRole(Long id) {
+        if(!roleRepository.existsById(id))
+        {
+            throw  new RuntimeException("not found");
+        }
         roleRepository.deleteById(id);
     }
 }
