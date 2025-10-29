@@ -215,9 +215,9 @@ public class DashboardController {
             dto.setEndDate(b.getEndDate());
             dto.setIsDeleted(b.getIsDeleted());
 
-            double progress = (b.getAmountLimit() != null && b.getAmountLimit() > 0)
-                    ? (b.getUsedAmount() / b.getAmountLimit()) * 100
-                    : 0.0;
+            Double used = b.getUsedAmount() != null ? b.getUsedAmount() : 0.0;
+            Double limit = b.getAmountLimit() != null && b.getAmountLimit() > 0 ? b.getAmountLimit() : 0.0;
+            double progress = (limit > 0) ? (used / limit) * 100 : 0.0;
             dto.setProgress(progress);
 
             String status = (b.getEndDate() != null && b.getEndDate().isBefore(LocalDate.now()))
@@ -359,10 +359,12 @@ public class DashboardController {
                 .collect(Collectors.toList());
 
         // Ngân sách gần chạm giới hạn
+        // Ngân sách gần chạm giới hạn
         List<Budget> nearLimitBudgets = budgetService.getAllBudgets().stream()
-                .filter(b -> b.getAmountLimit() > 0)
-                .filter(b -> (b.getUsedAmount() / b.getAmountLimit()) > 0.8)
+                .filter(b -> b.getAmountLimit() != null && b.getAmountLimit() > 0)
+                .filter(b -> (b.getUsedAmount() != null ? b.getUsedAmount() / b.getAmountLimit() : 0) > 0.8)
                 .collect(Collectors.toList());
+
 
         // 🧮 So sánh chi tiêu hôm nay với trung bình 7 ngày gần nhất
         double todayExpense = transactions.stream()

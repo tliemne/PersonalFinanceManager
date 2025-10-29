@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface BudgetRepository extends JpaRepository<Budget, Long> {
 
     List<Budget> findByUserId(Long userId);
+    List<Budget> findByCategory_IdAndUser_IdAndIsDeletedFalse(Long categoryId, Long userId);
 }

@@ -10,6 +10,7 @@ import com.example.PersonalFinanceManager.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -93,4 +94,33 @@ public class BudgetService implements BudgetServiceImpl {
                         && (b.getIsDeleted() == null || !b.getIsDeleted()))
                 .collect(Collectors.toList());
     }
+    public BudgetDTO toDTO(Budget b) {
+        BudgetDTO dto = new BudgetDTO();
+
+        dto.setId(b.getId());
+        dto.setUserId(b.getUser() != null ? b.getUser().getId() : null);
+        dto.setUserName(b.getUser() != null ? b.getUser().getFullName() : "Không xác định");
+
+        dto.setCategoryId(b.getCategory() != null ? b.getCategory().getId() : null);
+        dto.setCategoryName(b.getCategory() != null ? b.getCategory().getName() : "Không xác định");
+
+        dto.setAmountLimit(b.getAmountLimit());
+        dto.setUsedAmount(b.getUsedAmount() != null ? b.getUsedAmount() : 0.0);
+        dto.setStartDate(b.getStartDate());
+        dto.setEndDate(b.getEndDate());
+        dto.setIsDeleted(b.getIsDeleted());
+
+        double progress = (b.getAmountLimit() != null && b.getAmountLimit() > 0)
+                ? (b.getUsedAmount() / b.getAmountLimit()) * 100
+                : 0.0;
+        dto.setProgress(progress);
+
+        String status = (b.getEndDate() != null && b.getEndDate().isBefore(LocalDate.now()))
+                ? "Đã hết hạn"
+                : "Còn hiệu lực";
+        dto.setStatus(status);
+
+        return dto;
+    }
+
 }
