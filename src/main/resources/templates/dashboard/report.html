@@ -1,0 +1,68 @@
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script th:inline="javascript">
+  /*<![CDATA[*/
+  const transactions = /*[[${transactions}]]*/ [];
+
+  if (transactions && transactions.length > 0) {
+    // 🔹 Phân loại giao dịch
+    const expenseData = transactions.filter(t => t.transactionType === 'EXPENSE');
+    const incomeData = transactions.filter(t => t.transactionType === 'INCOME');
+
+    // 🔹 Gom chi tiêu theo category
+    const expenseByCategory = {};
+    expenseData.forEach(t => {
+      const category = t.categoryName || 'Khác'; // ✅ DTO có sẵn categoryName
+      expenseByCategory[category] = (expenseByCategory[category] || 0) + t.amount;
+    });
+
+    // 🔹 Gom thu nhập theo tháng
+    const incomeByMonth = {};
+    incomeData.forEach(t => {
+      const date = new Date(t.transactionDate);
+      const month = date.toLocaleString('default', { month: 'short', year: 'numeric' });
+      incomeByMonth[month] = (incomeByMonth[month] || 0) + t.amount;
+    });
+
+    // 🥧 Biểu đồ chi tiêu theo danh mục
+    const expenseChart = document.getElementById("expenseChart");
+    if (expenseChart) {
+      new Chart(expenseChart, {
+        type: 'pie',
+        data: {
+          labels: Object.keys(expenseByCategory),
+          datasets: [{
+            data: Object.values(expenseByCategory),
+            backgroundColor: ['#FF6384', '#FF9F40', '#FFCD56', '#4BC0C0', '#36A2EB', '#9966FF']
+          }]
+        },
+        options: {
+          plugins: {
+            legend: { position: 'bottom' }
+          }
+        }
+      });
+    }
+
+    // 📊 Biểu đồ thu nhập theo tháng
+    const incomeChart = document.getElementById("incomeChart");
+    if (incomeChart) {
+      new Chart(incomeChart, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(incomeByMonth),
+          datasets: [{
+            label: 'Thu nhập',
+            data: Object.values(incomeByMonth),
+            backgroundColor: '#4CAF50'
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: { y: { beginAtZero: true } },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+  }
+  /*]]>*/
+</script>

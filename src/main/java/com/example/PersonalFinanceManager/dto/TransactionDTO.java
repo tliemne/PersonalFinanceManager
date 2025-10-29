@@ -10,26 +10,38 @@ public class TransactionDTO {
     private Long accountId;
     private Long categoryId;
 
+    private String categoryName; // ✅ Thêm nhẹ: hiển thị Dashboard đẹp, không bắt buộc
     private Double amount;
-    private String transactionType;   // INCOME | EXPENSE
-    private String status;            // PENDING | COMPLETED | CANCELLED
+    private String transactionType;
+    private String status;
     private Boolean isDeleted;
     private String description;
     private LocalDate transactionDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // ✅ Constructors
     public TransactionDTO() {}
 
-    public TransactionDTO(Long id, Long userId, Long accountId, Long categoryId,
-                          Double amount, String transactionType, String status,
-                          Boolean isDeleted, String description,
-                          LocalDate transactionDate, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public TransactionDTO(
+            Long id,
+            Long userId,
+            Long accountId,
+            Long categoryId,
+            String categoryName, // ✅ thêm tham số mới
+            Double amount,
+            String transactionType,
+            String status,
+            Boolean isDeleted,
+            String description,
+            LocalDate transactionDate,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
         this.id = id;
         this.userId = userId;
         this.accountId = accountId;
         this.categoryId = categoryId;
+        this.categoryName = categoryName;
         this.amount = amount;
         this.transactionType = transactionType;
         this.status = status;
@@ -40,7 +52,26 @@ public class TransactionDTO {
         this.updatedAt = updatedAt;
     }
 
-    // ✅ Getters & Setters
+    // ✅ Constructor không có categoryName (cho service cũ vẫn chạy)
+    public TransactionDTO(
+            Long id,
+            Long userId,
+            Long accountId,
+            Long categoryId,
+            Double amount,
+            String transactionType,
+            String status,
+            Boolean isDeleted,
+            String description,
+            LocalDate transactionDate,
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt
+    ) {
+        this(id, userId, accountId, categoryId, null, amount, transactionType, status,
+                isDeleted, description, transactionDate, createdAt, updatedAt);
+    }
+
+    // Getters & Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -52,6 +83,9 @@ public class TransactionDTO {
 
     public Long getCategoryId() { return categoryId; }
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
+
+    public String getCategoryName() { return categoryName; }
+    public void setCategoryName(String categoryName) { this.categoryName = categoryName; }
 
     public Double getAmount() { return amount; }
     public void setAmount(Double amount) { this.amount = amount; }

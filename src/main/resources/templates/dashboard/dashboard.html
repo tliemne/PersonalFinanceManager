@@ -1,0 +1,113 @@
+<!-- templates/dashboard/dashboard.html -->
+<div th:fragment="content" class="p-6 space-y-8 animate-fade-in">
+
+    <!-- 🧾 Thống kê nhanh -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div class="p-5 rounded-2xl shadow bg-gradient-to-r from-green-400 to-emerald-500 text-white">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-sm opacity-80">Tổng thu nhập</p>
+                    <h2 class="text-2xl font-bold"
+                        th:text="${#numbers.formatDecimal(totalIncome, 0, 'COMMA', 0, 'POINT')} + ' ₫'">0 ₫</h2>
+                </div>
+                <i class="fas fa-arrow-trend-up text-3xl opacity-80"></i>
+            </div>
+        </div>
+
+        <div class="p-5 rounded-2xl shadow bg-gradient-to-r from-red-400 to-pink-500 text-white">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-sm opacity-80">Tổng chi tiêu</p>
+                    <h2 class="text-2xl font-bold"
+                        th:text="${#numbers.formatDecimal(totalExpense, 0, 'COMMA', 0, 'POINT')} + ' ₫'">0 ₫</h2>
+                </div>
+                <i class="fas fa-arrow-trend-down text-3xl opacity-80"></i>
+            </div>
+        </div>
+
+        <div class="p-5 rounded-2xl shadow bg-gradient-to-r from-indigo-500 to-blue-500 text-white">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-sm opacity-80">Số dư hiện tại</p>
+                    <h2 class="text-2xl font-bold"
+                        th:text="${#numbers.formatDecimal(balance, 0, 'COMMA', 0, 'POINT')} + ' ₫'">0 ₫</h2>
+                </div>
+                <i class="fas fa-wallet text-3xl opacity-80"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📊 Biểu đồ -->
+    <div class="bg-white rounded-2xl shadow p-5">
+        <h3 class="text-lg font-semibold text-gray-700 mb-4">Phân tích thu nhập & chi tiêu</h3>
+        <canvas id="incomeExpenseChart" height="120"></canvas>
+    </div>
+
+    <!-- 💸 Giao dịch gần đây -->
+    <div class="bg-white rounded-2xl shadow p-5">
+        <h3 class="text-lg font-semibold text-gray-700 mb-4">Giao dịch gần đây</h3>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm text-gray-700">
+                <thead class="border-b bg-gray-100 text-gray-600">
+                <tr>
+                    <th class="py-2 text-left">Ngày</th>
+                    <th class="py-2 text-left">Danh mục</th>
+                    <th class="py-2 text-left">Mô tả</th>
+                    <th class="py-2 text-right">Số tiền</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="t : ${transactions}" class="border-b hover:bg-gray-50 transition">
+                    <td class="py-2" th:text="${#temporals.format(t.transactionDate, 'dd/MM/yyyy')}">01/01/2025</td>
+                    <td class="py-2" th:text="${t.categoryName}">Ăn uống</td>
+                    <td class="py-2" th:text="${t.description ?: '-'}">Cà phê sáng</td>
+                    <td class="py-2 text-right font-semibold"
+                        th:text="${t.transactionType == 'INCOME' ? '+' : '-'} + ${#numbers.formatDecimal(t.amount, 0, 'COMMA', 0, 'POINT')} + ' ₫'"
+                        th:classappend="${t.transactionType == 'INCOME'} ? 'text-green-500' : 'text-red-500'">
+                        +100,000 ₫
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 🧠 Thêm Chart.js NGAY TRONG fragment -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        document.addEventListener("DOMContentLoaded", function () {
+            const income = /*[[${totalIncome ?: 0}]]*/ 0;
+            const expense = /*[[${totalExpense ?: 0}]]*/ 0;
+
+            const ctx = document.getElementById('incomeExpenseChart');
+            if (ctx && typeof Chart !== "undefined") {
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Thu nhập', 'Chi tiêu'],
+                        datasets: [{
+                            data: [income, expense],
+                            backgroundColor: ['#4ade80', '#f87171']
+                        }]
+                    },
+                    options: {
+                        cutout: '70%',
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+            } else {
+                console.warn("Không tìm thấy Chart.js hoặc canvas!");
+            }
+        });
+        /*]]>*/
+    </script>
+
+</div>
+
+<style>
+    .animate-fade-in {
+        transition: all 0.7s ease;
+    }
+</style>

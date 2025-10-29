@@ -1,0 +1,54 @@
+<!--<!DOCTYPE html>-->
+<!--<html xmlns:th="http://www.thymeleaf.org">-->
+<!--<section th:fragment="content">-->
+
+<!--  <div class="row g-4">-->
+<!--    <div class="col-md-4">-->
+<!--      <div class="card p-3 shadow-sm">-->
+<!--        <h5>Tổng thu nhập</h5>-->
+<!--        <h3 class="text-success fw-bold" th:text="${totalIncome} + ' ₫'"></h3>-->
+<!--      </div>-->
+<!--    </div>-->
+<!--    <div class="col-md-4">-->
+<!--      <div class="card p-3 shadow-sm">-->
+<!--        <h5>Tổng chi tiêu</h5>-->
+<!--        <h3 class="text-danger fw-bold" th:text="${totalExpense} + ' ₫'"></h3>-->
+<!--      </div>-->
+<!--    </div>-->
+<!--    <div class="col-md-4">-->
+<!--      <div class="card p-3 shadow-sm">-->
+<!--        <h5>Số dư còn lại</h5>-->
+<!--        <h3 class="fw-bold" th:text="${balance} + ' ₫'"></h3>-->
+<!--      </div>-->
+<!--    </div>-->
+<!--  </div>-->
+
+<!--  <div class="card mt-4 p-3 shadow-sm">-->
+<!--    <h5 class="mb-3">Thống kê chi tiêu theo danh mục</h5>-->
+<!--    <canvas id="expenseChart"></canvas>-->
+<!--  </div>-->
+
+<!--  <div class="card mt-4 p-3 shadow-sm">-->
+<!--    <h5 class="mb-3">Giao dịch gần đây</h5>-->
+<!--    <table class="table">-->
+<!--      <thead>-->
+<!--      <tr>-->
+<!--        <th>Ngày</th>-->
+<!--        <th>Danh mục</th>-->
+<!--        <th>Loại</th>-->
+<!--        <th>Số tiền</th>-->
+<!--      </tr>-->
+<!--      </thead>-->
+<!--      <tbody>-->
+<!--      <tr th:each="t : ${transactions}">-->
+<!--        <td th:text="${t.transactionDate}"></td>-->
+<!--        <td th:text="${t.category.name}"></td>-->
+<!--        <td th:text="${t.transactionType}"></td>-->
+<!--        <td th:text="${t.amount} + ' ₫'"></td>-->
+<!--      </tr>-->
+<!--      </tbody>-->
+<!--    </table>-->
+<!--  </div>-->
+
+<!--</section>-->
+<!--</html>-->

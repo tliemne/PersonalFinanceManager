@@ -100,11 +100,14 @@ public class TransactionController {
 
     // ✳️ Helper: Convert Entity -> DTO
     private TransactionDTO toDTO(Transaction t) {
+        String categoryName = (t.getCategory() != null) ? t.getCategory().getName() : "Khác";
+
         return new TransactionDTO(
                 t.getId(),
                 t.getUser().getId(),
                 t.getAccount().getId(),
-                t.getCategory().getId(),
+                t.getCategory() != null ? t.getCategory().getId() : null,
+                categoryName, // ✅ truyền thêm tham số này
                 t.getAmount(),
                 t.getTransactionType().name(),
                 t.getStatus().name(),
@@ -115,4 +118,5 @@ public class TransactionController {
                 t.getUpdatedAt()
         );
     }
+
 }

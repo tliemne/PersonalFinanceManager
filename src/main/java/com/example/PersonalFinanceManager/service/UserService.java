@@ -1,6 +1,8 @@
 package com.example.PersonalFinanceManager.service;
 
 import com.example.PersonalFinanceManager.model.User;
+import com.example.PersonalFinanceManager.model.UserPreference;
+import com.example.PersonalFinanceManager.repository.UserPreferenceRepository;
 import com.example.PersonalFinanceManager.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,7 +15,8 @@ public class UserService implements UserServiceImpl {
 
     @Autowired
     private UserRepository userRepository;
-
+    @Autowired
+    private  UserPreferenceRepository userPreferenceRepository;
     @Override
     public User createUser(User user) {
         return userRepository.save(user);
@@ -50,6 +53,10 @@ public class UserService implements UserServiceImpl {
             user.setIsActive(false); // Soft delete
             userRepository.save(user);
         });
+    }
+    @Override
+    public UserPreference getUserPreferenceByUserId(Long userId) {
+        return userPreferenceRepository.findByUserId(userId);
     }
 }
 

@@ -10,4 +10,9 @@ public interface TransactionServiceImpl {
     List<Transaction> getAllTransactions();
     Transaction updateTransaction(Long id, Transaction transaction);
     void deleteTransaction(Long id);
+    List<Transaction> getTransactionsByUserId(Long userId);
+    void softDeleteTransaction(Long id);
+    void deleteById(Long id);
+    void restoreTransaction(Long id);
+
 }

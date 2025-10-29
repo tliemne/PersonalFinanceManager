@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title th:text="${title}">FinanceApp</title>
+
+  <!-- 🌀 Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- 🎨 Font Awesome -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- ⚡ Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- 🧩 Favicon -->
+  <link rel="icon" th:href="@{/images/favicon.png}" type="image/png">
+
+  <!-- ⚙️ Không import Bootstrap ở đây (tránh conflict) -->
+
+  <!-- 🧠 Fix conflict nếu có trang con load Bootstrap -->
+  <style>
+    [class*="collapse"] { transition: none !important; }
+    .hidden { display: none !important; }
+    .show { display: block !important; }
+  </style>
+
+  <!-- ✅ Đặt script đúng vị trí trong <head> -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" defer></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const collapseBtns = document.querySelectorAll('.collapse-btn');
+      collapseBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const targetId = btn.dataset.target;
+          const content = document.getElementById(targetId);
+          const arrow = btn.querySelector('.collapse-arrow');
+          content.classList.toggle('hidden');
+          arrow.classList.toggle('rotate-180');
+        });
+      });
+
+      const active = document.querySelector('.bg-indigo-50, .bg-gradient-to-r');
+      if (active) {
+        const group = active.closest('div[id^="group-"]');
+        if (group) {
+          group.classList.remove('hidden');
+          const arrow = document.querySelector(`[data-target="${group.id}"] .collapse-arrow`);
+          if (arrow) arrow.classList.add('rotate-180');
+        }
+      }
+    });
+  </script>
+</head>
+
+<body class="bg-gray-100 flex min-h-screen font-sans text-gray-800">
+
+<!-- Sidebar -->
+<div th:replace="layout/fragments/sidebar :: sidebar"></div>
+
+<!-- Main content -->
+<div class="flex-1 flex flex-col min-h-screen">
+  <!-- Header -->
+  <header th:replace="layout/fragments/header :: header"></header>
+
+  <!-- Page Content -->
+  <main class="p-6 flex-1 overflow-y-auto bg-gray-50">
+    <div th:if="${content}" th:replace="~{${content} :: content}"></div>
+    <div th:unless="${content}">
+      <p class="text-gray-500">Không có nội dung để hiển thị</p>
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

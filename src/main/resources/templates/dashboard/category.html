@@ -1,0 +1,15 @@
+<h1 class="text-2xl font-semibold mb-6">Danh mục của bạn</h1>
+<div class="grid md:grid-cols-2 gap-6">
+    <div class="bg-white p-6 rounded-xl shadow">
+        <h2 class="font-semibold mb-3 text-green-600">Thu nhập</h2>
+        <ul>
+            <li th:each="c : ${incomeCategories}" th:text="${c.name}" class="p-2 bg-green-50 rounded mb-1"></li>
+        </ul>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow">
+        <h2 class="font-semibold mb-3 text-red-600">Chi tiêu</h2>
+        <ul>
+            <li th:each="c : ${expenseCategories}" th:text="${c.name}" class="p-2 bg-red-50 rounded mb-1"></li>
+        </ul>
+    </div>
+</div>

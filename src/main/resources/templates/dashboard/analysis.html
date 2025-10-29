@@ -1,0 +1,94 @@
+<div th:fragment="content" class="space-y-8">
+
+    <!-- Tiêu đề -->
+    <div class="border-b pb-4">
+        <h1 class="text-2xl font-semibold text-gray-800 flex items-center gap-2">
+            ⚡ Phân tích nhanh
+        </h1>
+        <p class="text-gray-500 mt-1">Phân tích tổng quan thu nhập, chi tiêu và gợi ý tài chính</p>
+    </div>
+
+    <!-- Biểu đồ & top danh mục -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Biểu đồ thu nhập/chi tiêu -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4">
+                Phân tích thu nhập & chi tiêu
+            </h2>
+            <canvas id="incomeExpenseChart" class="max-h-72"></canvas>
+        </div>
+
+        <!-- Top danh mục chi tiêu -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-coins text-yellow-400"></i> Top danh mục chi tiêu nhiều nhất
+            </h2>
+            <ul class="space-y-2">
+                <li th:each="c : ${topCategories}"
+                    class="flex justify-between border-b border-gray-100 pb-2 last:border-b-0">
+                    <span class="font-medium text-gray-700" th:text="${c.name}">Ăn uống</span>
+                    <span class="text-gray-600" th:text="${#numbers.formatDecimal(c.totalAmount, 0, 'COMMA', 0, 'POINT')} + ' ₫'">0 ₫</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Ngân sách sắp chạm giới hạn -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-yellow-400">
+        <h2 class="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-triangle-exclamation text-yellow-400"></i> Ngân sách sắp chạm giới hạn
+        </h2>
+        <ul class="space-y-3">
+            <li th:each="b : ${nearLimitBudgets}">
+                <div class="flex justify-between mb-1">
+                    <span class="font-medium text-gray-700" th:text="${b.name}">Ăn uống</span>
+                    <span class="text-sm text-gray-600"
+                          th:text="${#numbers.formatPercent(b.usedAmount / b.amountLimit, 0, 0)}">80%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                    <div class="bg-yellow-400 h-2.5 rounded-full transition-all duration-300"
+                         th:style="'width:' + (${b.usedAmount / b.amountLimit * 100}) + '%'"></div>
+                </div>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Gợi ý chi tiêu -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-green-400">
+        <h2 class="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-lightbulb text-green-500"></i> Gợi ý chi tiêu
+        </h2>
+        <div class="bg-green-50 border border-green-100 rounded-xl p-4 text-green-700 font-medium text-center"
+             th:text="${spendingAdvice}">
+            Chi tiêu của bạn hôm nay cao hơn trung bình tuần trước 25%.
+        </div>
+    </div>
+
+    <!-- JS Chart -->
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const income = /*[[${totalIncome ?: 0}]]*/ 0;
+        const expense = /*[[${totalExpense ?: 0}]]*/ 0;
+
+        const ctx = document.getElementById('incomeExpenseChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Thu nhập', 'Chi tiêu'],
+                datasets: [{
+                    data: [income, expense],
+                    backgroundColor: ['#34d399', '#f87171'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                cutout: '70%',
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+        /*]]>*/
+    </script>
+</div>
