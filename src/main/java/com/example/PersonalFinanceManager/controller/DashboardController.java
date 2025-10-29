@@ -7,57 +7,36 @@ import com.example.PersonalFinanceManager.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Controller
 public class DashboardController {
 
-    private final Long userId = 1L; // ⚡ Tạm cố định user_id
+    private final Long userId = 1L; // ⚡ Tạm cố định user_id (có thể thay bằng SecurityContext sau này)
 
-    @Autowired
-    private UserService userService;
+    @Autowired private UserService userService;
+    @Autowired private TransactionService transactionService;
+    @Autowired private BudgetService budgetService;
+    @Autowired private CategoryService categoryService;
+    @Autowired private GoalService goalService;
+    @Autowired private AccountService accountService;
 
-    @Autowired
-    private TransactionService transactionService;
-
-    @Autowired
-    private BudgetService budgetService;
-
-    @Autowired
-    private CategoryService categoryService;
-
-    @Autowired
-    private GoalService goalService;
-    @Autowired
-    private AccountService accountService;
-
-    // 🏠 Dashboard chính
+    // 🏠 DASHBOARD CHÍNH
     @GetMapping("/dashboard")
     public String userDashboard(Model model) {
-        List<Transaction> userTransactions = transactionService.getTransactionsByUserId(userId);
+        List<Transaction> transactions = transactionService.getTransactionsByUserId(userId);
+        if (transactions == null) transactions = new ArrayList<>();
 
-        double totalIncome = userTransactions.stream()
-                .filter(t -> t.getTransactionType() == Transaction.TransactionType.INCOME)
-                .mapToDouble(Transaction::getAmount)
-                .sum();
-
-        double totalExpense = userTransactions.stream()
-                .filter(t -> t.getTransactionType() == Transaction.TransactionType.EXPENSE)
-                .mapToDouble(Transaction::getAmount)
-                .sum();
-
+        double totalIncome = calculateTotal(transactions, Transaction.TransactionType.INCOME);
+        double totalExpense = calculateTotal(transactions, Transaction.TransactionType.EXPENSE);
         double balance = totalIncome - totalExpense;
 
-        // Giao dịch gần đây
-        List<TransactionDTO> recentTransactions = userTransactions.stream()
+        List<TransactionDTO> recentTransactions = transactions.stream()
+                .filter(t -> t.getTransactionDate() != null)
                 .sorted(Comparator.comparing(Transaction::getTransactionDate).reversed())
                 .limit(5)
                 .map(this::toDTO)
@@ -68,27 +47,18 @@ public class DashboardController {
         model.addAttribute("balance", balance);
         model.addAttribute("transactions", recentTransactions);
 
-        model.addAttribute("title", "Bảng điều khiển");
-        model.addAttribute("pageTitle", "Tổng quan");
-        model.addAttribute("content", "dashboard/dashboard");
-        model.addAttribute("activePage", "dashboard");
-
+        setViewAttributes(model, "Bảng điều khiển", "Tổng quan", "dashboard/dashboard", "dashboard");
         return "layout/base";
     }
 
     // 💵 QUẢN LÝ GIAO DỊCH
-    // 💵 QUẢN LÝ GIAO DỊCH
     @GetMapping("/dashboard/transaction")
     public String transactionPage(Model model) {
         List<TransactionDTO> transactions = transactionService.getTransactionsByUserId(userId)
-                .stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
+                .stream().map(this::toDTO).collect(Collectors.toList());
 
-        // ✅ Dùng service mới để lấy bản xóa mềm
-        List<TransactionDTO> deletedTransactions = transactionService.getDeletedTransactions()
-                .stream()
-                .filter(t -> t.getUser().getId().equals(userId))
+        List<TransactionDTO> deletedTransactions = transactionService.getDeletedTransactions().stream()
+                .filter(t -> t.getUser() != null && Objects.equals(t.getUser().getId(), userId))
                 .map(this::toDTO)
                 .collect(Collectors.toList());
 
@@ -98,283 +68,183 @@ public class DashboardController {
         model.addAttribute("categories", categoryService.getAllCategories());
         model.addAttribute("transactionDto", new TransactionDTO());
 
-        model.addAttribute("title", "Giao dịch");
-        model.addAttribute("pageTitle", "Quản lý giao dịch");
-        model.addAttribute("content", "dashboard/transaction");
-        model.addAttribute("activePage", "transaction");
-
+        setViewAttributes(model, "Giao dịch", "Quản lý giao dịch", "dashboard/transaction", "transaction");
         return "layout/base";
     }
 
-    // ➕ Lưu hoặc cập nhật giao dịch
+    // ➕ LƯU / CẬP NHẬT GIAO DỊCH
     @PostMapping("/dashboard/transaction/save")
     public String saveTransaction(@ModelAttribute TransactionDTO dto) {
-        Transaction transaction = new Transaction();
+        if (dto == null) return "redirect:/dashboard/transaction";
 
-        // Gán thông tin cơ bản
+        Transaction transaction = (dto.getId() != null)
+                ? transactionService.getTransactionById(dto.getId()).orElse(new Transaction())
+                : new Transaction();
+
         transaction.setUser(userService.getUserById(userId).orElse(null));
         transaction.setAccount(accountService.getAccountById(dto.getAccountId()).orElse(null));
         transaction.setCategory(categoryService.getCategoryById(dto.getCategoryId()).orElse(null));
-
-        transaction.setAmount(dto.getAmount());
+        transaction.setAmount(Optional.ofNullable(dto.getAmount()).orElse(0.0));
         transaction.setTransactionType(Transaction.TransactionType.valueOf(dto.getTransactionType()));
         transaction.setStatus(Transaction.TransactionStatus.valueOf(dto.getStatus()));
         transaction.setDescription(dto.getDescription());
+        transaction.setTransactionDate(Optional.ofNullable(dto.getTransactionDate()).orElse(LocalDate.now()));
+        transaction.setIsDeleted(Optional.ofNullable(dto.getIsDeleted()).orElse(false));
 
-        // ⚠️ Fix lỗi "transaction_date cannot be null"
-        // Nếu người dùng không chọn ngày → tự gán ngày hiện tại
-        if (dto.getTransactionDate() != null) {
-            transaction.setTransactionDate(dto.getTransactionDate());
-        } else {
-            transaction.setTransactionDate(LocalDate.now());
-        }
-
-        // Tránh null pointer cho isDeleted
-        transaction.setIsDeleted(dto.getIsDeleted() != null ? dto.getIsDeleted() : false);
-
-        // ⚡ Nếu có ID → cập nhật, ngược lại → thêm mới
-        if (dto.getId() != null) {
+        if (dto.getId() != null)
             transactionService.updateTransaction(dto.getId(), transaction);
-        } else {
+        else
             transactionService.createTransaction(transaction);
-        }
 
         return "redirect:/dashboard/transaction";
     }
 
-    // ❌ Xóa mềm
+    // ❌ XÓA MỀM / ♻️ KHÔI PHỤC / 🗑️ XÓA VĨNH VIỄN
     @GetMapping("/dashboard/transaction/delete/{id}")
     public String deleteTransaction(@PathVariable Long id) {
-        // ✅ gọi đúng method trong service
-        transactionService.deleteTransaction(id);
+        if (id != null) transactionService.deleteTransaction(id);
         return "redirect:/dashboard/transaction";
     }
 
-    // ♻️ Khôi phục
     @GetMapping("/dashboard/transaction/restore/{id}")
     public String restoreTransaction(@PathVariable Long id) {
-        transactionService.restoreTransaction(id);
+        if (id != null) transactionService.restoreTransaction(id);
         return "redirect:/dashboard/transaction";
     }
 
-    // 🗑️ Xóa vĩnh viễn
     @GetMapping("/dashboard/transaction/permanent-delete/{id}")
     public String permanentDeleteTransaction(@PathVariable Long id) {
-        transactionService.deleteById(id);
+        if (id != null) transactionService.deleteById(id);
         return "redirect:/dashboard/transaction";
     }
 
-    // 📊 Báo cáo
+    // 📊 BÁO CÁO
     @GetMapping("/dashboard/report")
     public String reportPage(Model model) {
         List<Transaction> transactions = transactionService.getTransactionsByUserId(userId);
+        if (transactions == null) transactions = new ArrayList<>();
 
-        double totalIncome = transactions.stream()
-                .filter(t -> t.getTransactionType() == Transaction.TransactionType.INCOME)
-                .mapToDouble(Transaction::getAmount)
-                .sum();
+        double totalIncome = calculateTotal(transactions, Transaction.TransactionType.INCOME);
+        double totalExpense = calculateTotal(transactions, Transaction.TransactionType.EXPENSE);
 
-        double totalExpense = transactions.stream()
-                .filter(t -> t.getTransactionType() == Transaction.TransactionType.EXPENSE)
-                .mapToDouble(Transaction::getAmount)
-                .sum();
-
-        double balance = totalIncome - totalExpense;
-
-        List<TransactionDTO> transactionDTOs = transactions.stream()
-                .map(this::toDTO)
-                .collect(Collectors.toList());
-
-        model.addAttribute("transactions", transactionDTOs);
+        model.addAttribute("transactions", transactions.stream().map(this::toDTO).collect(Collectors.toList()));
         model.addAttribute("totalIncome", totalIncome);
         model.addAttribute("totalExpense", totalExpense);
-        model.addAttribute("balance", balance);
+        model.addAttribute("balance", totalIncome - totalExpense);
 
-        model.addAttribute("title", "Báo cáo tài chính");
-        model.addAttribute("pageTitle", "Báo cáo");
-        model.addAttribute("content", "dashboard/report");
-        model.addAttribute("activePage", "report");
+        setViewAttributes(model, "Báo cáo tài chính", "Báo cáo", "dashboard/report", "report");
         return "layout/base";
     }
-    // 💰 Ngân sách
-    @GetMapping("/dashboard/budget") // ✅ Sửa lại đường dẫn
+
+    // 💰 NGÂN SÁCH
+    @GetMapping("/dashboard/budget")
     public String budgetPage(Model model) {
-        List<BudgetDTO> budgets = budgetService.getAllBudgets().stream().map(b -> {
-            BudgetDTO dto = new BudgetDTO();
-
-            dto.setId(b.getId());
-            dto.setUserId(b.getUser() != null ? b.getUser().getId() : null);
-            dto.setUserName(b.getUser() != null ? b.getUser().getFullName() : "Không xác định");
-
-            dto.setCategoryId(b.getCategory() != null ? b.getCategory().getId() : null);
-            dto.setCategoryName(b.getCategory() != null ? b.getCategory().getName() : "Không xác định");
-
-            dto.setAmountLimit(b.getAmountLimit());
-            dto.setUsedAmount(b.getUsedAmount());
-            dto.setStartDate(b.getStartDate());
-            dto.setEndDate(b.getEndDate());
-            dto.setIsDeleted(b.getIsDeleted());
-
-            Double used = b.getUsedAmount() != null ? b.getUsedAmount() : 0.0;
-            Double limit = b.getAmountLimit() != null && b.getAmountLimit() > 0 ? b.getAmountLimit() : 0.0;
-            double progress = (limit > 0) ? (used / limit) * 100 : 0.0;
-            dto.setProgress(progress);
-
-            String status = (b.getEndDate() != null && b.getEndDate().isBefore(LocalDate.now()))
-                    ? "Đã hết hạn"
-                    : "Còn hiệu lực";
-            dto.setStatus(status);
-
-            return dto;
-        }).collect(Collectors.toList());
+        List<BudgetDTO> budgets = budgetService.getAllBudgets().stream()
+                .map(this::mapToBudgetProgress)
+                .collect(Collectors.toList());
 
         model.addAttribute("budgets", budgets);
         model.addAttribute("categories", categoryService.getAllCategories());
-
-        model.addAttribute("title", "Ngân sách");
-        model.addAttribute("pageTitle", "Quản lý ngân sách");
-        model.addAttribute("content", "dashboard/budget");
-        model.addAttribute("activePage", "budget");
-
+        setViewAttributes(model, "Ngân sách", "Quản lý ngân sách", "dashboard/budget", "budget");
         return "layout/base";
     }
 
-    // ➕ Lưu hoặc cập nhật ngân sách
-    @PostMapping("/dashboard/budget/save") // ✅ Sửa lại đường dẫn
+    @PostMapping("/dashboard/budget/save")
     public String saveBudget(@ModelAttribute BudgetDTO dto) {
+        if (dto == null) return "redirect:/dashboard/budget";
+
         if (dto.getId() != null) {
             budgetService.updateBudget(dto.getId(), dto);
         } else {
             Budget budget = new Budget();
             budget.setUser(userService.getUserById(userId).orElse(null));
             budget.setCategory(categoryService.getCategoryById(dto.getCategoryId()).orElse(null));
-            budget.setAmountLimit(dto.getAmountLimit());
-            budget.setUsedAmount(dto.getUsedAmount() != null ? dto.getUsedAmount() : 0.0);
+            budget.setAmountLimit(Optional.ofNullable(dto.getAmountLimit()).orElse(0.0));
+            budget.setUsedAmount(Optional.ofNullable(dto.getUsedAmount()).orElse(0.0));
             budget.setStartDate(dto.getStartDate());
             budget.setEndDate(dto.getEndDate());
             budget.setIsDeleted(false);
             budgetService.createBudget(budget);
         }
-
-        return "redirect:/dashboard/budget"; // ✅ redirect đồng bộ
-    }
-
-    // ❌ Xóa ngân sách
-    @GetMapping("/dashboard/budget/delete/{id}") // ✅ Sửa lại đường dẫn
-    public String deleteBudget(@PathVariable Long id) {
-        budgetService.deleteBudget(id);
         return "redirect:/dashboard/budget";
     }
-    // 🗂️ Danh mục
+
+    @GetMapping("/dashboard/budget/delete/{id}")
+    public String deleteBudget(@PathVariable Long id) {
+        if (id != null) budgetService.deleteBudget(id);
+        return "redirect:/dashboard/budget";
+    }
+
+    // 🗂️ DANH MỤC
     @GetMapping("/dashboard/category")
     public String categoryPage(Model model) {
-        List<Category> incomeCategories = categoryService.getIncomeCategories();
-        List<Category> expenseCategories = categoryService.getExpenseCategories();
-
-        model.addAttribute("incomeCategories", incomeCategories);
-        model.addAttribute("expenseCategories", expenseCategories);
-
-        model.addAttribute("title", "Danh mục");
-        model.addAttribute("pageTitle", "Danh mục của bạn");
-        model.addAttribute("content", "dashboard/category");
-        model.addAttribute("activePage", "category");
-
+        model.addAttribute("incomeCategories", categoryService.getIncomeCategories());
+        model.addAttribute("expenseCategories", categoryService.getExpenseCategories());
+        setViewAttributes(model, "Danh mục", "Danh mục của bạn", "dashboard/category", "category");
         return "layout/base";
     }
+
+    // 🎯 MỤC TIÊU
     @GetMapping("/dashboard/goal")
     public String goalPage(Model model) {
-        List<Goal> goals = goalService.getGoalsByUserId(userId);
-
-        model.addAttribute("goals", goals);
-        model.addAttribute("title", "Mục tiêu tài chính");
-        model.addAttribute("pageTitle", "Mục tiêu");
-        model.addAttribute("content", "dashboard/goal");
-        model.addAttribute("activePage", "goal");
-
+        model.addAttribute("goals", goalService.getGoalsByUserId(userId));
+        setViewAttributes(model, "Mục tiêu tài chính", "Mục tiêu", "dashboard/goal", "goal");
         return "layout/base";
     }
+
+    // ⚙️ CÀI ĐẶT
     @GetMapping("/dashboard/settings")
     public String settingsPage(Model model) {
-        // Giả sử tạm thời userId cố định là 1L
         User user = userService.getUserById(userId).orElse(null);
         UserPreference preferences = userService.getUserPreferenceByUserId(userId);
-
-        // Gửi dữ liệu qua view
         model.addAttribute("user", user);
         model.addAttribute("preferences", preferences);
-
-        model.addAttribute("title", "Cài đặt tài khoản");
-        model.addAttribute("pageTitle", "Cài đặt");
-        model.addAttribute("content", "dashboard/settings");
-        model.addAttribute("activePage", "settings");
-
+        setViewAttributes(model, "Cài đặt tài khoản", "Cài đặt", "dashboard/settings", "settings");
         return "layout/base";
     }
-    private TransactionDTO toDTO(Transaction t) {
-        String categoryName = (t.getCategory() != null) ? t.getCategory().getName() : "Khác";
 
-        return new TransactionDTO(
-                t.getId(),
-                t.getUser().getId(),
-                t.getAccount().getId(),
-                t.getCategory() != null ? t.getCategory().getId() : null, // tránh null pointer
-                categoryName, // ✅ thêm trường này để Thymeleaf hiển thị tên danh mục
-                t.getAmount(),
-                t.getTransactionType().name(),
-                t.getStatus().name(),
-                t.getIsDeleted(),
-                t.getDescription(),
-                t.getTransactionDate(),
-                t.getCreatedAt(),
-                t.getUpdatedAt()
-        );
-    }
-    // 📈 Phân tích nhanh
+    // 📈 PHÂN TÍCH NHANH
     @GetMapping("/dashboard/analysis")
     public String quickAnalysis(Model model) {
         List<Transaction> transactions = transactionService.getTransactionsByUserId(userId);
+        if (transactions == null) transactions = new ArrayList<>();
 
-        // Tổng thu / chi
-        double totalIncome = transactions.stream()
-                .filter(t -> t.getTransactionType() == Transaction.TransactionType.INCOME)
-                .mapToDouble(Transaction::getAmount)
-                .sum();
+        double totalIncome = calculateTotal(transactions, Transaction.TransactionType.INCOME);
+        double totalExpense = calculateTotal(transactions, Transaction.TransactionType.EXPENSE);
 
-        double totalExpense = transactions.stream()
-                .filter(t -> t.getTransactionType() == Transaction.TransactionType.EXPENSE)
-                .mapToDouble(Transaction::getAmount)
-                .sum();
-
-        // Top 3 danh mục chi tiêu
         List<CategorySpending> topCategories = transactions.stream()
                 .filter(t -> t.getTransactionType() == Transaction.TransactionType.EXPENSE)
-                .collect(Collectors.groupingBy(
-                        t -> t.getCategory() != null ? t.getCategory().getName() : "Khác",
-                        Collectors.summingDouble(Transaction::getAmount)
-                ))
+                .filter(t -> t.getCategory() != null)
+                .collect(Collectors.groupingBy(t -> t.getCategory().getName(), Collectors.summingDouble(Transaction::getAmount)))
                 .entrySet().stream()
-                .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
+                .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
                 .limit(3)
                 .map(e -> new CategorySpending(e.getKey(), e.getValue()))
                 .collect(Collectors.toList());
 
-        // Ngân sách gần chạm giới hạn
-        List<Budget> nearLimitBudgets = budgetService.getAllBudgets().stream()
-                .filter(b -> b.getAmountLimit() != null && b.getAmountLimit() > 0)
-                .filter(b -> {
-                    double used = b.getUsedAmount() != null ? b.getUsedAmount() : 0.0;
-                    double limit = b.getAmountLimit();
-                    double ratio = limit > 0 ? (used / limit) : 0.0;
-                    ratio = Math.min(ratio, 1.0); // ✅ không vượt quá 100%
-                    return ratio >= 0.8; // gần chạm giới hạn
+        List<BudgetDTO> nearLimitBudgets = budgetService.getAllBudgets().stream()
+                .map(this::mapToBudgetProgress)
+                .filter(dto -> dto != null
+                        && dto.getAmountLimit() != null
+                        && dto.getAmountLimit() > 0
+                        && dto.getProgress() != null
+                        && !Double.isNaN(dto.getProgress())
+                        && !Double.isInfinite(dto.getProgress()))
+                .filter(dto -> dto.getProgress() >= 80.0)
+                .peek(dto -> {
+                    // ép lại cho chắc, tránh NaN lọt qua
+                    if (Double.isNaN(dto.getActualProgress()) || Double.isInfinite(dto.getActualProgress())) {
+                        dto.setActualProgress(0.0);
+                    }
+                    if (Double.isNaN(dto.getProgress()) || Double.isInfinite(dto.getProgress())) {
+                        dto.setProgress(0.0);
+                    }
                 })
                 .collect(Collectors.toList());
 
-
-        // 🧮 So sánh chi tiêu hôm nay với trung bình 7 ngày gần nhất
         double todayExpense = transactions.stream()
                 .filter(t -> t.getTransactionType() == Transaction.TransactionType.EXPENSE)
-                .filter(t -> t.getTransactionDate().isEqual(LocalDate.now()))
+                .filter(t -> LocalDate.now().equals(t.getTransactionDate()))
                 .mapToDouble(Transaction::getAmount)
                 .sum();
 
@@ -382,45 +252,129 @@ public class DashboardController {
                 .filter(t -> t.getTransactionType() == Transaction.TransactionType.EXPENSE)
                 .filter(t -> !t.getTransactionDate().isBefore(LocalDate.now().minusDays(7)))
                 .mapToDouble(Transaction::getAmount)
-                .average()
-                .orElse(0);
+                .average().orElse(0.0);
 
-        String spendingAdvice;
-        if (avgExpenseLast7Days > 0 && todayExpense > avgExpenseLast7Days * 1.2) {
-            spendingAdvice = "💡 Chi tiêu của bạn hôm nay cao hơn trung bình tuần trước "
-                    + String.format("%.0f%%", (todayExpense / avgExpenseLast7Days - 1) * 100) + ". Hãy cân nhắc lại nhé!";
-        } else if (avgExpenseLast7Days > 0 && todayExpense < avgExpenseLast7Days * 0.8) {
-            spendingAdvice = "🎉 Bạn đang chi tiêu tiết kiệm hơn bình thường! Tiếp tục phát huy nhé!";
-        } else {
-            spendingAdvice = "📊 Chi tiêu của bạn hôm nay ở mức ổn định so với tuần trước.";
-        }
-
-        // Gửi dữ liệu sang view
         model.addAttribute("totalIncome", totalIncome);
         model.addAttribute("totalExpense", totalExpense);
         model.addAttribute("topCategories", topCategories);
         model.addAttribute("nearLimitBudgets", nearLimitBudgets);
-        model.addAttribute("spendingAdvice", spendingAdvice);
+        model.addAttribute("spendingAdvice", getSpendingAdvice(todayExpense, avgExpenseLast7Days, totalIncome, totalExpense));
 
-        model.addAttribute("title", "Phân tích nhanh");
-        model.addAttribute("pageTitle", "Phân tích nhanh");
-        model.addAttribute("content", "dashboard/analysis");
-        model.addAttribute("activePage", "analysis");
-
+        setViewAttributes(model, "Phân tích nhanh", "Phân tích nhanh", "dashboard/analysis", "analysis");
         return "layout/base";
     }
 
-    // ✅ Class phụ nhỏ để hiển thị danh mục chi tiêu
-    private static class CategorySpending {
-        private final String name;
-        private final double totalAmount;
+    // 🔹 Helper Methods
+    private double calculateTotal(List<Transaction> list, Transaction.TransactionType type) {
+        return list.stream()
+                .filter(t -> t.getTransactionType() == type)
+                .mapToDouble(t -> Optional.ofNullable(t.getAmount()).orElse(0.0))
+                .sum();
+    }
 
-        public CategorySpending(String name, double totalAmount) {
-            this.name = name;
-            this.totalAmount = totalAmount;
+    private void setViewAttributes(Model model, String title, String pageTitle, String content, String active) {
+        model.addAttribute("title", title);
+        model.addAttribute("pageTitle", pageTitle);
+        model.addAttribute("content", content);
+        model.addAttribute("activePage", active);
+    }
+
+    private TransactionDTO toDTO(Transaction t) {
+        if (t == null || t.getUser() == null) return null;
+        return new TransactionDTO(
+                t.getId(),
+                t.getUser().getId(),
+                t.getAccount() != null ? t.getAccount().getId() : null,
+                t.getCategory() != null ? t.getCategory().getId() : null,
+                t.getCategory() != null ? t.getCategory().getName() : "Khác",
+                Optional.ofNullable(t.getAmount()).orElse(0.0),
+                t.getTransactionType().name(),
+                t.getStatus().name(),
+                Optional.ofNullable(t.getIsDeleted()).orElse(false),
+                t.getDescription(),
+                t.getTransactionDate(),
+                t.getCreatedAt(),
+                t.getUpdatedAt()
+        );
+    }
+
+    private BudgetDTO mapToBudgetProgress(Budget b) {
+        if (b == null) return new BudgetDTO();
+        BudgetDTO dto = new BudgetDTO();
+
+        dto.setId(b.getId());
+        dto.setCategoryName(b.getCategory() != null ? b.getCategory().getName() : "Không xác định");
+        dto.setAmountLimit(Optional.ofNullable(b.getAmountLimit()).orElse(0.0));
+        dto.setStartDate(b.getStartDate());
+        dto.setEndDate(b.getEndDate());
+
+        List<Transaction> transactions = Optional.ofNullable(
+                transactionService.getTransactionsByUserId(userId)
+        ).orElse(new ArrayList<>());
+
+        double totalSpent = transactions.stream()
+                .filter(t -> t.getTransactionType() == Transaction.TransactionType.EXPENSE)
+                .filter(t -> t.getCategory() != null && b.getCategory() != null)
+                .filter(t -> Objects.equals(t.getCategory().getId(), b.getCategory().getId()))
+                .filter(t -> t.getTransactionDate() != null)
+                .filter(t -> {
+                    if (b.getStartDate() == null && b.getEndDate() == null) return true;
+                    if (b.getStartDate() == null) return !t.getTransactionDate().isAfter(b.getEndDate());
+                    if (b.getEndDate() == null) return !t.getTransactionDate().isBefore(b.getStartDate());
+                    return !t.getTransactionDate().isBefore(b.getStartDate()) &&
+                            !t.getTransactionDate().isAfter(b.getEndDate());
+                })
+                .mapToDouble(t -> Optional.ofNullable(t.getAmount()).orElse(0.0))
+                .sum();
+
+        dto.setUsedAmount(totalSpent);
+
+        // ✅ Chặn lỗi Infinity và NaN hoàn toàn
+        double limit = Optional.ofNullable(dto.getAmountLimit()).filter(l -> l > 0).orElse(1.0);
+        double actualProgress = 0.0;
+
+        if (limit > 0.0) {
+            actualProgress = (totalSpent / limit) * 100.0;
         }
 
-        public String getName() { return name; }
-        public double getTotalAmount() { return totalAmount; }
+        if (Double.isNaN(actualProgress) || Double.isInfinite(actualProgress) || actualProgress < 0) {
+            actualProgress = 0.0;
+        }
+
+        // ✅ Nếu vượt quá 100% thì gán 100 nhưng không crash
+        dto.setActualProgress(actualProgress);
+        dto.setProgress(Math.min(actualProgress, 100.0));
+
+        return dto;
     }
+
+
+    private String getSpendingAdvice(double todayExpense, double avgExpenseLast7Days, double totalIncome, double totalExpense) {
+        // ✅ Nếu chưa có dữ liệu
+        if (totalIncome <= 0 && totalExpense <= 0) {
+            return "📊 Chưa có dữ liệu chi tiêu để phân tích.";
+        }
+
+        // ✅ Nếu chi tiêu vượt thu nhập
+        if (totalExpense > totalIncome) {
+            double over = ((totalExpense - totalIncome) / totalIncome) * 100;
+            return "⚠️ Cảnh báo: Chi tiêu của bạn đang vượt thu nhập khoảng " + String.format("%.0f%%", over);
+        }
+
+        // ✅ Nếu chi tiêu dưới 70% thu nhập
+        if (totalExpense < totalIncome * 0.7) {
+            return "🎉 Bạn đang chi tiêu rất tiết kiệm so với thu nhập!";
+        }
+
+        // ✅ Nếu chi tiêu gần bằng thu nhập
+        if (totalExpense >= totalIncome * 0.9) {
+            return "⚠️ Lưu ý: Chi tiêu của bạn đang tiến gần mức thu nhập!";
+        }
+
+        // ✅ Bình thường
+        return "📊 Chi tiêu của bạn đang cân đối so với thu nhập.";
+    }
+
+
+    private record CategorySpending(String name, double totalAmount) {}
 }

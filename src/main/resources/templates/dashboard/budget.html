@@ -32,11 +32,16 @@
                     <td class="py-2 px-4 border" th:text="${#numbers.formatDecimal(b.usedAmount != null ? b.usedAmount : 0, 0, 'COMMA', 2, 'POINT')}">0</td>
                     <td class="py-2 px-4 border">
                         <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                            <div class="bg-blue-500 h-3 rounded-full"
-                                 th:style="'width:' + ${b.progress} + '%'"></div>
+                            <div class="h-3 rounded-full"
+                                 th:classappend="${b.actualProgress > 100} ? 'bg-red-500' : 'bg-blue-500'"
+                                 th:style="'width:' + (${b.progress}) + '%'"></div>
                         </div>
-                        <span class="text-xs text-gray-600" th:text="${#numbers.formatDecimal(b.progress, 0, 0)} + '%'"></span>
+
+                        <span class="text-xs"
+                              th:classappend="${b.actualProgress > 100} ? 'text-red-600' : 'text-gray-600'"
+                              th:text="${b.actualProgress != null ? #numbers.formatDecimal(b.actualProgress, 0, 0) + '%' : '0%'}"></span>
                     </td>
+
                     <td class="py-2 px-4 border">
                         <span th:text="${#temporals.format(b.startDate, 'dd/MM/yyyy')}"></span> →
                         <span th:text="${#temporals.format(b.endDate, 'dd/MM/yyyy')}"></span>

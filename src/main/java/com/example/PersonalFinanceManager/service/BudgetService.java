@@ -48,11 +48,8 @@ public class BudgetService implements BudgetServiceImpl {
     }
 
     // ===================== UPDATE =====================
-    // ⚙️ Bổ sung xử lý từ BudgetDTO
     public Budget updateBudget(Long id, BudgetDTO dto) {
         return budgetRepository.findById(id).map(existing -> {
-
-            // Nếu DTO có user/category mới thì cập nhật
             if (dto.getUserId() != null) {
                 userRepository.findById(dto.getUserId())
                         .ifPresent(existing::setUser);
@@ -81,7 +78,7 @@ public class BudgetService implements BudgetServiceImpl {
     @Override
     public void deleteBudget(Long id) {
         budgetRepository.findById(id).ifPresent(b -> {
-            b.setIsDeleted(true); // soft delete
+            b.setIsDeleted(true);
             budgetRepository.save(b);
         });
     }
@@ -94,6 +91,8 @@ public class BudgetService implements BudgetServiceImpl {
                         && (b.getIsDeleted() == null || !b.getIsDeleted()))
                 .collect(Collectors.toList());
     }
+
+    // ===================== CHUYỂN BUDGET -> DTO =====================
     public BudgetDTO toDTO(Budget b) {
         BudgetDTO dto = new BudgetDTO();
 
@@ -104,17 +103,31 @@ public class BudgetService implements BudgetServiceImpl {
         dto.setCategoryId(b.getCategory() != null ? b.getCategory().getId() : null);
         dto.setCategoryName(b.getCategory() != null ? b.getCategory().getName() : "Không xác định");
 
-        dto.setAmountLimit(b.getAmountLimit());
-        dto.setUsedAmount(b.getUsedAmount() != null ? b.getUsedAmount() : 0.0);
+        double used = (b.getUsedAmount() != null) ? b.getUsedAmount() : 0.0;
+        double limit = (b.getAmountLimit() != null && b.getAmountLimit() > 0) ? b.getAmountLimit() : 0.0;
+
+        dto.setUsedAmount(used);
+        dto.setAmountLimit(limit);
         dto.setStartDate(b.getStartDate());
         dto.setEndDate(b.getEndDate());
         dto.setIsDeleted(b.getIsDeleted());
 
-        double progress = (b.getAmountLimit() != null && b.getAmountLimit() > 0)
-                ? (b.getUsedAmount() / b.getAmountLimit()) * 100
-                : 0.0;
-        dto.setProgress(progress);
+        // ✅ Chặn NaN hoặc Infinity
+        double actualProgress = 0.0;
+        if (limit > 0.0) {
+            actualProgress = (used / limit) * 100.0;
+        }
 
+        if (Double.isNaN(actualProgress) || Double.isInfinite(actualProgress) || actualProgress < 0) {
+            actualProgress = 0.0;
+        }
+
+        double progress = Math.min(actualProgress, 100.0);
+
+        dto.setProgress(progress);
+        dto.setActualProgress(actualProgress);
+
+        // 🕒 Trạng thái ngân sách
         String status = (b.getEndDate() != null && b.getEndDate().isBefore(LocalDate.now()))
                 ? "Đã hết hạn"
                 : "Còn hiệu lực";

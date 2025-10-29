@@ -13,6 +13,7 @@ public class BudgetDTO {
     private LocalDate startDate;   // Ngày bắt đầu
     private LocalDate endDate;     // Ngày kết thúc
     private Boolean isDeleted;     // Đã xóa hay chưa
+    private Double actualProgress; // Tiến độ thật (có thể vượt 100%)
 
     // ✅ Thông tin mở rộng (tính toán thêm)
     private Double progress;       // Tiến độ sử dụng (%) = usedAmount / amountLimit * 100
@@ -56,4 +57,12 @@ public class BudgetDTO {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public Double getActualProgress() { return actualProgress; }
+    public void setActualProgress(Double actualProgress) { this.actualProgress = actualProgress; }
+    public double getSafeProgress() {
+        if (actualProgress == null || Double.isNaN(actualProgress) || Double.isInfinite(actualProgress)) {
+            return 0.0;
+        }
+        return Math.min(actualProgress, 100.0);
+    }
 }

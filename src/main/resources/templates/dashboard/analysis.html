@@ -28,41 +28,48 @@
                 <li th:each="c : ${topCategories}"
                     class="flex justify-between border-b border-gray-100 pb-2 last:border-b-0">
                     <span class="font-medium text-gray-700" th:text="${c.name}">Ăn uống</span>
-                    <span class="text-gray-600" th:text="${#numbers.formatDecimal(c.totalAmount, 0, 'COMMA', 0, 'POINT')} + ' ₫'">0 ₫</span>
+                    <span class="text-gray-600"
+                          th:text="${#numbers.formatDecimal(c.totalAmount != null ? c.totalAmount : 0, 0, 'COMMA', 0, 'POINT')} + ' ₫'">0 ₫</span>
+                </li>
+
+                <!-- Nếu không có danh mục -->
+                <li th:if="${topCategories == null or #lists.isEmpty(topCategories)}" class="text-gray-500 text-center py-2">
+                    Không có dữ liệu chi tiêu.
                 </li>
             </ul>
         </div>
     </div>
 
+    <!-- Ngân sách gần giới hạn -->
     <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-yellow-400">
         <h2 class="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
             <i class="fa-solid fa-triangle-exclamation text-yellow-400"></i> Ngân sách sắp chạm giới hạn
         </h2>
+
         <ul class="space-y-3">
-            <li th:each="b : ${nearLimitBudgets}"
-                th:with="
-                used = ${b.usedAmount} != null ? ${b.usedAmount} : 0,
-                limit = ${b.amountLimit} != null ? ${b.amountLimit} : 0,
-                ratio = (limit > 0) ? (used / limit) : 0,
-                clampedRatio = T(Math).min(ratio, 1),
-                pct = T(Math).round(clampedRatio * 100)
-            ">
+            <li th:each="b : ${nearLimitBudgets}">
                 <div class="flex justify-between mb-1">
-                <span class="font-medium text-gray-700"
-                      th:text="${b.category != null ? b.category.name : (b.categoryName != null ? b.categoryName : 'Không xác định')}">
-                    Ăn uống
-                </span>
-                    <span class="text-sm text-gray-600" th:text="${pct + '%'}">80%</span>
+        <span class="font-medium text-gray-700"
+              th:text="${b.categoryName != null ? b.categoryName : 'Không xác định'}">Ăn uống</span>
+
+                    <span class="text-sm font-medium"
+                          th:text="${#numbers.formatDecimal(b.safeProgress, 0, 'COMMA', 0, 'POINT')} + '%'">0%</span>
                 </div>
-                <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                    <div class="bg-yellow-400 h-2.5 rounded-full transition-all duration-300"
-                         th:style="'width:' + (pct) + '%'"></div>
+
+                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                    <div class="h-2.5 rounded-full transition-all duration-300"
+                         th:style="'width:' + b.safeProgress + '%'"
+                         th:classappend="${b.safeProgress > 100} ? 'bg-red-500' : 'bg-yellow-400'">
+                    </div>
                 </div>
             </li>
-            <li th:if="${#lists.isEmpty(nearLimitBudgets)}" class="text-gray-500">Không có ngân sách gần giới hạn.</li>
+
+
+            <li th:if="${#lists.isEmpty(nearLimitBudgets)}" class="text-gray-500">
+                Không có ngân sách gần giới hạn.
+            </li>
         </ul>
     </div>
-
 
     <!-- Gợi ý chi tiêu -->
     <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-green-400">
@@ -77,28 +84,36 @@
 
     <!-- JS Chart -->
     <script th:inline="javascript">
-        /*<![CDATA[*/
-        const income = /*[[${totalIncome ?: 0}]]*/ 0;
-        const expense = /*[[${totalExpense ?: 0}]]*/ 0;
+        document.addEventListener('DOMContentLoaded', function() {
+            // ✅ Dữ liệu an toàn (tránh null hoặc lỗi cú pháp)
+            const income = /*[[${totalIncome != null ? totalIncome : 0}]]*/ 0;
+            const expense = /*[[${totalExpense != null ? totalExpense : 0}]]*/ 0;
 
-        const ctx = document.getElementById('incomeExpenseChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Thu nhập', 'Chi tiêu'],
-                datasets: [{
-                    data: [income, expense],
-                    backgroundColor: ['#34d399', '#f87171'],
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                cutout: '70%',
-                plugins: {
-                    legend: { position: 'bottom' }
+            // ✅ Đảm bảo Chart.js đã được load
+            if (typeof Chart === 'undefined') return;
+
+            const ctx = document.getElementById('incomeExpenseChart');
+            if (!ctx) return;
+
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Thu nhập', 'Chi tiêu'],
+                    datasets: [{
+                        data: [income, expense],
+                        backgroundColor: ['#34d399', '#f87171'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
                 }
-            }
+            });
         });
-        /*]]>*/
     </script>
 </div>

@@ -42,9 +42,7 @@ public class    TransactionService implements TransactionServiceImpl {
 
                 // 🚫 Nếu vượt quá giới hạn, chỉ set tối đa = giới hạn
                 if (budget.getAmountLimit() != null && newUsed > budget.getAmountLimit()) {
-                    newUsed = budget.getAmountLimit();
-                    System.out.println("⚠️ Giao dịch vượt quá ngân sách cho danh mục: "
-                            + budget.getCategory().getName());
+                    System.out.println("⚠️ Giao dịch vượt ngân sách cho danh mục: " + budget.getCategory().getName());
                 }
 
                 budget.setUsedAmount(newUsed);
