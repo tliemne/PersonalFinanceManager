@@ -28,48 +28,47 @@ public class TransactionService implements TransactionServiceImpl {
 
     @Override
     public List<Transaction> getAllTransactions() {
-        // 🔹 chỉ lấy những giao dịch chưa bị xóa (isDeleted = false)
+        // 🔹 Lấy tất cả giao dịch chưa bị xóa
         return transactionRepository.findByIsDeletedFalse();
+    }
+
+    // 🔹 Lấy các giao dịch đã xóa (thùng rác)
+    public List<Transaction> getDeletedTransactions() {
+        return transactionRepository.findByIsDeletedTrue();
     }
 
     @Override
     @Transactional
     public Transaction updateTransaction(Long id, Transaction transaction) {
-        return transactionRepository.findById(id).map(e -> {
-            e.setAmount(transaction.getAmount());
-            e.setTransactionType(transaction.getTransactionType());
-            e.setDescription(transaction.getDescription());
-            e.setTransactionDate(transaction.getTransactionDate());
-            e.setStatus(transaction.getStatus());
-            e.setIsDeleted(transaction.getIsDeleted());
-            e.setCategory(transaction.getCategory());
-            e.setUser(transaction.getUser());
-            return transactionRepository.save(e);
+        return transactionRepository.findById(id).map(existing -> {
+            existing.setAmount(transaction.getAmount());
+            existing.setTransactionType(transaction.getTransactionType());
+            existing.setDescription(transaction.getDescription());
+            existing.setTransactionDate(transaction.getTransactionDate());
+            existing.setStatus(transaction.getStatus());
+            existing.setIsDeleted(transaction.getIsDeleted());
+            existing.setCategory(transaction.getCategory());
+            existing.setUser(transaction.getUser());
+            existing.setAccount(transaction.getAccount());
+            return transactionRepository.save(existing);
         }).orElseThrow(() -> new RuntimeException("Transaction not found"));
     }
 
     @Override
     @Transactional
     public void deleteTransaction(Long id) {
-        transactionRepository.findById(id).ifPresent(e -> {
-            e.setIsDeleted(true); // 🔹 Soft delete
-            transactionRepository.save(e);
+        transactionRepository.findById(id).ifPresent(t -> {
+            t.setIsDeleted(true); // 🔹 Soft delete
+            transactionRepository.save(t);
         });
     }
 
-    // 🔹 Thêm tiện ích lấy theo user ID
+    @Override
     public List<Transaction> getTransactionsByUserId(Long userId) {
         return transactionRepository.findByUser_IdAndIsDeletedFalse(userId);
     }
 
-    @Transactional
-    public void softDeleteTransaction(Long id) {
-        Transaction t = transactionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Transaction not found"));
-        t.setIsDeleted(true);
-        transactionRepository.save(t);
-    }
-
+    @Override
     @Transactional
     public void restoreTransaction(Long id) {
         Transaction t = transactionRepository.findById(id)
@@ -78,10 +77,7 @@ public class TransactionService implements TransactionServiceImpl {
         transactionRepository.save(t);
     }
 
-    /**
-     * 🔴 Xóa vĩnh viễn (hard delete)
-     * Dùng cẩn thận — không thể khôi phục
-     */
+    @Override
     @Transactional
     public void deleteById(Long id) {
         if (!transactionRepository.existsById(id)) {

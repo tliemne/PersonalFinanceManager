@@ -6,17 +6,19 @@
         <p class="text-gray-500">Xem, thêm, chỉnh sửa và khôi phục giao dịch</p>
     </div>
 
-    <!-- 🔹 DANH SÁCH GIAO DỊCH -->
+    <!-- DANH SÁCH GIAO DỊCH -->
     <section class="bg-white p-6 rounded-2xl shadow mb-10" id="list">
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-semibold">Danh sách giao dịch</h2>
             <div class="space-x-2">
-                <a href="#form" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
+                <button type="button" onclick="openModal('formModal')"
+                        class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
                     ➕ Thêm giao dịch
-                </a>
-                <a href="#trash" class="bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600">
+                </button>
+                <button type="button" onclick="openModal('trashModal')"
+                        class="bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600">
                     🗑️ Thùng rác
-                </a>
+                </button>
             </div>
         </div>
 
@@ -35,85 +37,102 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="t : ${transactions}" class="border-t">
-                    <td th:text="${t.id}" class="py-2 px-3"></td>
-                    <td th:text="${t.transactionType}" class="py-2 px-3"></td>
-                    <td th:text="${t.categoryName}" class="py-2 px-3"></td>
-                    <td th:text="${t.amount}" class="py-2 px-3"></td>
-                    <td th:text="${t.status}" class="py-2 px-3"></td>
-                    <td th:text="${#temporals.format(t.transactionDate, 'dd/MM/yyyy')}" class="py-2 px-3"></td>
-                    <td th:text="${t.description}" class="py-2 px-3"></td>
-                    <td class="py-2 px-3 space-x-2">
-                        <a th:href="@{'/dashboard/transaction/edit/' + ${t.id}}" class="text-blue-600 hover:underline">✏️</a>
+                <tr th:each="t : ${transactions}">
+                    <td th:text="${t.id}" class="py-2 px-3 border"></td>
+                    <td th:text="${t.transactionType}" class="py-2 px-3 border"></td>
+                    <td th:text="${t.categoryName}" class="py-2 px-3 border"></td>
+                    <td th:text="${#numbers.formatDecimal(t.amount, 0, 'COMMA', 2, 'POINT') + ' ₫'}"
+                        class="py-2 px-3 border text-right"></td>
+                    <td th:text="${t.status}" class="py-2 px-3 border"></td>
+                    <td th:text="${#temporals.format(t.transactionDate, 'dd/MM/yyyy')}" class="py-2 px-3 border"></td>
+                    <td th:text="${t.description}" class="py-2 px-3 border"></td>
+                    <td class="py-2 px-3 border space-x-2 text-center">
                         <a th:href="@{'/dashboard/transaction/delete/' + ${t.id}}"
                            class="text-red-600 hover:underline"
-                           onclick="return confirm('Chuyển vào thùng rác?')">🗑️</a>
+                           onclick="return confirm('Chuyển giao dịch này vào thùng rác?')">🗑️</a>
                     </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(transactions)}">
+                    <td colspan="8" class="text-center py-4 text-gray-500">Không có giao dịch nào</td>
                 </tr>
                 </tbody>
             </table>
         </div>
     </section>
 
-    <!-- 🔹 FORM THÊM/SỬA -->
-    <section id="form" class="bg-white p-6 rounded-2xl shadow mb-10">
-        <h2 class="text-xl font-semibold mb-4"
-            th:text="${transactionDto.id != null} ? '✏️ Chỉnh sửa giao dịch' : '➕ Thêm giao dịch mới'"></h2>
+    <!-- MODAL: FORM THÊM/SỬA -->
+    <div id="formModal" class="fixed inset-0 hidden bg-black bg-opacity-50 flex justify-center items-center z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-lg relative overflow-y-auto max-h-[85vh]">
 
-        <form th:action="@{/dashboard/transaction/save}" th:object="${transactionDto}" method="post" class="space-y-4">
-            <input type="hidden" th:field="*{id}"/>
+        <button type="button" onclick="closeModal('formModal')" class="absolute top-2 right-3 text-gray-500 text-2xl">&times;</button>
 
-            <div>
-                <label class="block text-gray-600 mb-1">Loại</label>
-                <select th:field="*{transactionType}" class="border rounded-md p-2 w-full">
-                    <option value="INCOME">INCOME</option>
-                    <option value="EXPENSE">EXPENSE</option>
-                </select>
-            </div>
+            <h2 class="text-xl font-semibold mb-4"
+                th:text="${transactionDto.id != null} ? '✏️ Chỉnh sửa giao dịch' : '➕ Thêm giao dịch mới'"></h2>
 
-            <div>
-                <label class="block text-gray-600 mb-1">Danh mục</label>
-                <select th:field="*{categoryId}" class="border rounded-md p-2 w-full">
-                    <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}"></option>
-                </select>
-            </div>
+            <form th:action="@{/dashboard/transaction/save}" th:object="${transactionDto}" method="post" class="space-y-4">
+                <input type="hidden" th:field="*{id}" />
 
-            <div>
-                <label class="block text-gray-600 mb-1">Số tiền</label>
-                <input type="number" step="0.01" th:field="*{amount}" class="border rounded-md p-2 w-full"/>
-            </div>
+                <div>
+                    <label class="block text-gray-600 mb-1">Loại giao dịch</label>
+                    <select th:field="*{transactionType}" class="border rounded-md p-2 w-full">
+                        <option value="INCOME">Thu nhập</option>
+                        <option value="EXPENSE">Chi tiêu</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-gray-600 mb-1">Tài khoản</label>
+                    <select th:field="*{accountId}" class="border rounded-md p-2 w-full">
+                        <option value="">-- Chọn tài khoản --</option>
+                        <option th:each="a : ${accounts}" th:value="${a.id}" th:text="${a.name}"></option>
+                    </select>
+                </div>
 
-            <div>
-                <label class="block text-gray-600 mb-1">Trạng thái</label>
-                <select th:field="*{status}" class="border rounded-md p-2 w-full">
-                    <option value="PENDING">PENDING</option>
-                    <option value="COMPLETED">COMPLETED</option>
-                    <option value="CANCELLED">CANCELLED</option>
-                </select>
-            </div>
 
-            <div>
-                <label class="block text-gray-600 mb-1">Mô tả</label>
-                <textarea th:field="*{description}" class="border rounded-md p-2 w-full" rows="3"></textarea>
-            </div>
+                <div>
+                    <label class="block text-gray-600 mb-1">Danh mục</label>
+                    <select th:field="*{categoryId}" class="border rounded-md p-2 w-full">
+                        <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}"></option>
+                    </select>
+                </div>
 
-            <div>
-                <label class="block text-gray-600 mb-1">Ngày</label>
-                <input type="date" th:field="*{transactionDate}" class="border rounded-md p-2 w-full"/>
-            </div>
+                <div>
+                    <label class="block text-gray-600 mb-1">Số tiền</label>
+                    <input type="number" step="0.01" th:field="*{amount}" class="border rounded-md p-2 w-full"/>
+                </div>
 
-            <div class="pt-3">
-                <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">💾 Lưu</button>
-                <a href="#list" class="ml-2 text-gray-600 hover:underline">⬅️ Quay lại danh sách</a>
-            </div>
-        </form>
-    </section>
+                <div>
+                    <label class="block text-gray-600 mb-1">Trạng thái</label>
+                    <select th:field="*{status}" class="border rounded-md p-2 w-full">
+                        <option value="PENDING">Đang xử lý</option>
+                        <option value="COMPLETED">Hoàn thành</option>
+                        <option value="CANCELLED">Hủy bỏ</option>
+                    </select>
+                </div>
 
-    <!-- 🔹 THÙNG RÁC -->
-    <section id="trash" class="bg-white p-6 rounded-2xl shadow">
-        <h2 class="text-xl font-semibold mb-4">🗑️ Giao dịch đã xóa</h2>
+                <div>
+                    <label class="block text-gray-600 mb-1">Ngày giao dịch</label>
+                    <input type="date" th:field="*{transactionDate}" class="border rounded-md p-2 w-full"/>
+                </div>
 
-        <div class="overflow-x-auto">
+                <div>
+                    <label class="block text-gray-600 mb-1">Mô tả</label>
+                    <textarea th:field="*{description}" class="border rounded-md p-2 w-full" rows="3"></textarea>
+                </div>
+
+                <div class="pt-3 flex justify-end">
+                    <button type="button" onclick="closeModal('formModal')" class="mr-3 text-gray-600 hover:underline">Hủy</button>
+                    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">💾 Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: THÙNG RÁC -->
+    <div id="trashModal" class="fixed inset-0 hidden bg-black bg-opacity-50 flex justify-center items-center z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-4xl relative overflow-y-auto max-h-[80vh]">
+            <button type="button" onclick="closeModal('trashModal')" class="absolute top-2 right-3 text-gray-500 text-2xl">&times;</button>
+            <h2 class="text-xl font-semibold mb-4">🗑️ Giao dịch đã xóa</h2>
+
             <table class="min-w-full border border-gray-200">
                 <thead class="bg-gray-100 text-gray-700">
                 <tr>
@@ -121,29 +140,42 @@
                     <th class="py-2 px-3 border">Loại</th>
                     <th class="py-2 px-3 border">Danh mục</th>
                     <th class="py-2 px-3 border">Số tiền</th>
-                    <th class="py-2 px-3 border">Trạng thái</th>
                     <th class="py-2 px-3 border">Ngày</th>
                     <th class="py-2 px-3 border">Mô tả</th>
                     <th class="py-2 px-3 border">Hành động</th>
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="t : ${deletedTransactions}" class="border-t">
-                    <td th:text="${t.id}" class="py-2 px-3"></td>
-                    <td th:text="${t.transactionType}" class="py-2 px-3"></td>
-                    <td th:text="${t.categoryName}" class="py-2 px-3"></td>
-                    <td th:text="${t.amount}" class="py-2 px-3"></td>
-                    <td th:text="${t.status}" class="py-2 px-3"></td>
-                    <td th:text="${#temporals.format(t.transactionDate, 'dd/MM/yyyy')}" class="py-2 px-3"></td>
-                    <td th:text="${t.description}" class="py-2 px-3"></td>
-                    <td class="py-2 px-3 space-x-2">
+                <tr th:each="t : ${deletedTransactions}">
+                    <td th:text="${t.id}" class="py-2 px-3 border"></td>
+                    <td th:text="${t.transactionType}" class="py-2 px-3 border"></td>
+                    <td th:text="${t.categoryName}" class="py-2 px-3 border"></td>
+                    <td th:text="${t.amount}" class="py-2 px-3 border"></td>
+                    <td th:text="${#temporals.format(t.transactionDate, 'dd/MM/yyyy')}" class="py-2 px-3 border"></td>
+                    <td th:text="${t.description}" class="py-2 px-3 border"></td>
+                    <td class="py-2 px-3 border text-center space-x-2">
                         <a th:href="@{'/dashboard/transaction/restore/' + ${t.id}}" class="text-green-600 hover:underline">♻️</a>
-                        <a th:href="@{'/dashboard/transaction/permanent-delete/' + ${t.id}}" class="text-red-600 hover:underline"
+                        <a th:href="@{'/dashboard/transaction/permanent-delete/' + ${t.id}}"
+                           class="text-red-600 hover:underline"
                            onclick="return confirm('Xóa vĩnh viễn giao dịch này?')">❌</a>
                     </td>
                 </tr>
+                <tr th:if="${#lists.isEmpty(deletedTransactions)}">
+                    <td colspan="7" class="text-center py-4 text-gray-500">Không có giao dịch đã xóa</td>
+                </tr>
                 </tbody>
             </table>
         </div>
-    </section>
+    </div>
+
+    <script>
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+    </script>
+
 </div>

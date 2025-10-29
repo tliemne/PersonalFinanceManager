@@ -77,17 +77,18 @@ public class DashboardController {
     }
 
     // 💵 QUẢN LÝ GIAO DỊCH
+    // 💵 QUẢN LÝ GIAO DỊCH
     @GetMapping("/dashboard/transaction")
     public String transactionPage(Model model) {
         List<TransactionDTO> transactions = transactionService.getTransactionsByUserId(userId)
                 .stream()
-                .filter(t -> !t.getIsDeleted())
                 .map(this::toDTO)
                 .collect(Collectors.toList());
 
-        List<TransactionDTO> deletedTransactions = transactionService.getTransactionsByUserId(userId)
+        // ✅ Dùng service mới để lấy bản xóa mềm
+        List<TransactionDTO> deletedTransactions = transactionService.getDeletedTransactions()
                 .stream()
-                .filter(Transaction::getIsDeleted)
+                .filter(t -> t.getUser().getId().equals(userId))
                 .map(this::toDTO)
                 .collect(Collectors.toList());
 
@@ -109,16 +110,29 @@ public class DashboardController {
     @PostMapping("/dashboard/transaction/save")
     public String saveTransaction(@ModelAttribute TransactionDTO dto) {
         Transaction transaction = new Transaction();
+
+        // Gán thông tin cơ bản
         transaction.setUser(userService.getUserById(userId).orElse(null));
         transaction.setAccount(accountService.getAccountById(dto.getAccountId()).orElse(null));
         transaction.setCategory(categoryService.getCategoryById(dto.getCategoryId()).orElse(null));
+
         transaction.setAmount(dto.getAmount());
         transaction.setTransactionType(Transaction.TransactionType.valueOf(dto.getTransactionType()));
         transaction.setStatus(Transaction.TransactionStatus.valueOf(dto.getStatus()));
         transaction.setDescription(dto.getDescription());
-        transaction.setTransactionDate(dto.getTransactionDate());
+
+        // ⚠️ Fix lỗi "transaction_date cannot be null"
+        // Nếu người dùng không chọn ngày → tự gán ngày hiện tại
+        if (dto.getTransactionDate() != null) {
+            transaction.setTransactionDate(dto.getTransactionDate());
+        } else {
+            transaction.setTransactionDate(LocalDate.now());
+        }
+
+        // Tránh null pointer cho isDeleted
         transaction.setIsDeleted(dto.getIsDeleted() != null ? dto.getIsDeleted() : false);
 
+        // ⚡ Nếu có ID → cập nhật, ngược lại → thêm mới
         if (dto.getId() != null) {
             transactionService.updateTransaction(dto.getId(), transaction);
         } else {
@@ -131,7 +145,8 @@ public class DashboardController {
     // ❌ Xóa mềm
     @GetMapping("/dashboard/transaction/delete/{id}")
     public String deleteTransaction(@PathVariable Long id) {
-        transactionService.softDeleteTransaction(id);
+        // ✅ gọi đúng method trong service
+        transactionService.deleteTransaction(id);
         return "redirect:/dashboard/transaction";
     }
 
