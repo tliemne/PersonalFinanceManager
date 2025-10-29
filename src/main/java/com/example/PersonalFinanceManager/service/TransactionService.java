@@ -40,9 +40,11 @@ public class    TransactionService implements TransactionServiceImpl {
                 double used = budget.getUsedAmount() != null ? budget.getUsedAmount() : 0.0;
                 double newUsed = used + saved.getAmount();
 
-                // 🚫 Giới hạn: nếu vượt limit thì vẫn cập nhật nhưng không crash
+                // 🚫 Nếu vượt quá giới hạn, chỉ set tối đa = giới hạn
                 if (budget.getAmountLimit() != null && newUsed > budget.getAmountLimit()) {
-                    newUsed = budget.getAmountLimit(); // cắt về giới hạn
+                    newUsed = budget.getAmountLimit();
+                    System.out.println("⚠️ Giao dịch vượt quá ngân sách cho danh mục: "
+                            + budget.getCategory().getName());
                 }
 
                 budget.setUsedAmount(newUsed);
@@ -73,6 +75,31 @@ public class    TransactionService implements TransactionServiceImpl {
     @Transactional
     public Transaction updateTransaction(Long id, Transaction transaction) {
         return transactionRepository.findById(id).map(existing -> {
+
+            boolean wasExpense = existing.getTransactionType() == Transaction.TransactionType.EXPENSE;
+            boolean isExpense = transaction.getTransactionType() == Transaction.TransactionType.EXPENSE;
+
+            Long oldCategoryId = existing.getCategory() != null ? existing.getCategory().getId() : null;
+            Long newCategoryId = transaction.getCategory() != null ? transaction.getCategory().getId() : null;
+            Long userId = existing.getUser() != null ? existing.getUser().getId() : null;
+
+            Double oldAmount = existing.getAmount() != null ? existing.getAmount() : 0.0;
+            Double newAmount = transaction.getAmount() != null ? transaction.getAmount() : 0.0;
+
+            // 🔹 Nếu là chi tiêu cũ => trừ ngân sách cũ
+            if (wasExpense && userId != null && oldCategoryId != null) {
+                List<Budget> oldBudgets = budgetRepository.findByCategory_IdAndUser_IdAndIsDeletedFalse(oldCategoryId, userId);
+                if (!oldBudgets.isEmpty()) {
+                    Budget oldBudget = oldBudgets.get(0);
+                    double used = oldBudget.getUsedAmount() != null ? oldBudget.getUsedAmount() : 0.0;
+                    double newUsed = used - oldAmount;
+                    if (newUsed < 0) newUsed = 0.0;
+                    oldBudget.setUsedAmount(newUsed);
+                    budgetRepository.save(oldBudget);
+                }
+            }
+
+            // 🔹 Cập nhật thông tin giao dịch
             existing.setAmount(transaction.getAmount());
             existing.setTransactionType(transaction.getTransactionType());
             existing.setDescription(transaction.getDescription());
@@ -82,9 +109,30 @@ public class    TransactionService implements TransactionServiceImpl {
             existing.setCategory(transaction.getCategory());
             existing.setUser(transaction.getUser());
             existing.setAccount(transaction.getAccount());
-            return transactionRepository.save(existing);
+
+            Transaction updated = transactionRepository.save(existing);
+
+            // 🔹 Nếu là chi tiêu mới => cộng vào ngân sách mới
+            if (isExpense && userId != null && newCategoryId != null) {
+                List<Budget> newBudgets = budgetRepository.findByCategory_IdAndUser_IdAndIsDeletedFalse(newCategoryId, userId);
+                if (!newBudgets.isEmpty()) {
+                    Budget newBudget = newBudgets.get(0);
+                    double used = newBudget.getUsedAmount() != null ? newBudget.getUsedAmount() : 0.0;
+                    double newUsed = used + newAmount;
+
+                    if (newBudget.getAmountLimit() != null && newUsed > newBudget.getAmountLimit()) {
+                        newUsed = newBudget.getAmountLimit();
+                    }
+
+                    newBudget.setUsedAmount(newUsed);
+                    budgetRepository.save(newBudget);
+                }
+            }
+
+            return updated;
         }).orElseThrow(() -> new RuntimeException("Transaction not found"));
     }
+
 
     @Override
     @Transactional
@@ -144,9 +192,11 @@ public class    TransactionService implements TransactionServiceImpl {
                 double used = budget.getUsedAmount() != null ? budget.getUsedAmount() : 0.0;
                 double newUsed = used + (t.getAmount() != null ? t.getAmount() : 0.0);
 
-                // 🚫 Nếu vượt giới hạn thì vẫn cập nhật nhưng cắt về limit
+                // 🚫 Nếu vượt giới hạn thì cắt về limit (không để UI hiển thị >100%)
                 if (budget.getAmountLimit() != null && newUsed > budget.getAmountLimit()) {
                     newUsed = budget.getAmountLimit();
+                    System.out.println("⚠️ Khôi phục giao dịch vượt ngân sách: "
+                            + budget.getCategory().getName());
                 }
 
                 budget.setUsedAmount(newUsed);

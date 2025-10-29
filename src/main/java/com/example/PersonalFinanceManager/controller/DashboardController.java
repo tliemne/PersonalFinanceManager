@@ -359,10 +359,15 @@ public class DashboardController {
                 .collect(Collectors.toList());
 
         // Ngân sách gần chạm giới hạn
-        // Ngân sách gần chạm giới hạn
         List<Budget> nearLimitBudgets = budgetService.getAllBudgets().stream()
                 .filter(b -> b.getAmountLimit() != null && b.getAmountLimit() > 0)
-                .filter(b -> (b.getUsedAmount() != null ? b.getUsedAmount() / b.getAmountLimit() : 0) > 0.8)
+                .filter(b -> {
+                    double used = b.getUsedAmount() != null ? b.getUsedAmount() : 0.0;
+                    double limit = b.getAmountLimit();
+                    double ratio = limit > 0 ? (used / limit) : 0.0;
+                    ratio = Math.min(ratio, 1.0); // ✅ không vượt quá 100%
+                    return ratio >= 0.8; // gần chạm giới hạn
+                })
                 .collect(Collectors.toList());
 
 
