@@ -6,71 +6,91 @@ import com.example.PersonalFinanceManager.model.User;
 import com.example.PersonalFinanceManager.service.CategoryService;
 import com.example.PersonalFinanceManager.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
-@RestController
-@RequestMapping("/api/categories")
+@Controller
+@RequestMapping("/dashboard/category")
 public class CategoryController {
 
     @Autowired
     private CategoryService categoryService;
 
     @Autowired
-    private UserService userService; // dùng để lấy User theo userId
+    private UserService userService;
 
+    private final Long userId = 1L; // ⚡ Tạm thời hardcode cho test, sau thay bằng SecurityContext
 
+    // 🟢 Hiển thị trang danh mục
     @GetMapping
-    public ResponseEntity<List<CategoryDTO>> getAllCategories() {
-        List<CategoryDTO> result = categoryService.getAllCategories()
-                .stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(result);
+    public String showCategories(Model model) {
+        User user = userService.getUserById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // ⚡ Dùng DTO thay vì Entity để tránh vòng lặp & dữ liệu thừa
+        List<CategoryDTO> categories = categoryService.getCategoriesByUserIdDTO(userId);
+
+        model.addAttribute("user", user);
+        model.addAttribute("categories", categories);
+        model.addAttribute("newCategory", new CategoryDTO());
+
+        // 🧭 Layout setup
+        model.addAttribute("title", "Danh mục của bạn");
+        model.addAttribute("pageTitle", "Danh mục của bạn");
+        model.addAttribute("content", "dashboard/category");
+        model.addAttribute("activePage", "category");
+
+        return "layout/base";
     }
-    @GetMapping("/{id}")
-    public ResponseEntity<CategoryDTO> getCategoryById(@PathVariable Long id) {
-        Category category = categoryService.getCategoryById(id)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
-        return ResponseEntity.ok(convertToDTO(category));
-    }
-    @PostMapping
-    public ResponseEntity<CategoryDTO> createCategory(@RequestBody CategoryDTO dto) {
-        User user = userService.getUserById(dto.getUserId())
+
+    // 🟢 Thêm danh mục mới
+    @PostMapping("/add")
+    public String addCategory(@RequestParam String name,
+                              @RequestParam("type") Category.CategoryType type,
+                              RedirectAttributes redirectAttributes) {
+        User user = userService.getUserById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         Category category = new Category();
         category.setUser(user);
-        category.setName(dto.getName());
-        category.setType(dto.getType());
+        category.setName(name);
+        category.setType(type);
 
-        Category saved = categoryService.createCategory(category);
-        return ResponseEntity.ok(convertToDTO(saved));
+        categoryService.createCategory(category);
+        redirectAttributes.addFlashAttribute("success", "✅ Thêm danh mục thành công!");
+        return "redirect:/dashboard/category";
     }
-    @PutMapping("/{id}")
-    public ResponseEntity<CategoryDTO> updateCategory(@PathVariable Long id, @RequestBody CategoryDTO dto) {
-        Category category = new Category();
-        category.setName(dto.getName());
-        category.setType(dto.getType());
 
-        Category updated = categoryService.updateCategory(id, category);
-        return ResponseEntity.ok(convertToDTO(updated));
+    // 🟡 Cập nhật danh mục
+    @PostMapping("/update/{id}")
+    public String updateCategory(@PathVariable Long id,
+                                 @RequestParam String name,
+                                 @RequestParam("type") Category.CategoryType type,
+                                 RedirectAttributes redirectAttributes) {
+        Category category = categoryService.getCategoryById(id)
+                .orElseThrow(() -> new RuntimeException("Category not found"));
+
+        category.setName(name);
+        category.setType(type);
+        categoryService.updateCategory(id, category);
+
+        redirectAttributes.addFlashAttribute("success", "✏️ Cập nhật danh mục thành công!");
+        return "redirect:/dashboard/category";
     }
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
-        categoryService.deleteCategory(id);
-        return ResponseEntity.noContent().build();
-    }
-    private CategoryDTO convertToDTO(Category category) {
-        return new CategoryDTO(
-                category.getId(),
-                category.getUser().getId(),
-                category.getName(),
-                category.getType(),
-                category.getCreatedAt()
-        );
+
+    // 🔴 Xóa danh mục
+    @GetMapping("/delete/{id}")
+    public String deleteCategory(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+        try {
+            categoryService.deleteCategory(id);
+            redirectAttributes.addFlashAttribute("success", "🗑️ Xóa danh mục thành công!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "⚠️ Không thể xóa danh mục (đang được sử dụng)");
+        }
+        return "redirect:/dashboard/category";
     }
 }

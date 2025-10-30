@@ -1,0 +1,113 @@
+<div th:fragment="content">
+  <div class="max-w-6xl mx-auto bg-white shadow rounded-2xl p-6 space-y-6 animate-fade-in">
+
+    <!-- 🏦 Tiêu đề -->
+    <div class="flex justify-between items-center">
+      <h2 class="text-2xl font-semibold text-gray-700">Ví / Tài khoản của bạn</h2>
+      <span class="text-sm text-gray-500">Tổng số ví: <b th:text="${accounts.size()}">0</b></span>
+    </div>
+
+    <!-- 🟢 Thông báo -->
+    <div th:if="${success}" class="bg-green-100 text-green-700 p-3 rounded-lg" th:text="${success}"></div>
+    <div th:if="${error}" class="bg-red-100 text-red-700 p-3 rounded-lg" th:text="${error}"></div>
+
+    <!-- 🟢 Form thêm tài khoản -->
+    <form th:action="@{/dashboard/accounts/add}" method="post"
+          class="flex flex-wrap gap-3 items-center border-b pb-4">
+      <input type="text" name="name" placeholder="Tên ví / tài khoản"
+             class="flex-1 border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-indigo-500"
+             required>
+
+      <input type="number" name="balance" step="0.01" placeholder="Số dư ban đầu"
+             class="w-48 border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-indigo-500"
+             required>
+
+      <select name="currency"
+              class="border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-indigo-500">
+        <option value="VND">VND</option>
+        <option value="USD">USD</option>
+        <option value="EUR">EUR</option>
+      </select>
+
+      <button type="submit"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded transition">
+        + Thêm ví
+      </button>
+    </form>
+
+    <!-- 💼 Danh sách ví -->
+    <div class="overflow-x-auto mt-4">
+      <table class="w-full border-collapse">
+        <thead>
+        <tr class="bg-gray-100 text-gray-700">
+          <th class="text-left py-2 px-3">Tên ví</th>
+          <th class="text-right py-2 px-3">Số dư hiện tại</th>
+          <th class="text-left py-2 px-3">Tiền tệ</th>
+          <th class="text-left py-2 px-3">Ngày tạo</th>
+          <th class="text-right py-2 px-3">Hành động</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="acc : ${accounts}" class="border-b hover:bg-gray-50 transition">
+          <td class="py-2 px-3 font-medium text-gray-800" th:text="${acc.name}"></td>
+
+          <!-- ✅ Số dư: lấy giá trị mới nhất từ DB, hiển thị màu -->
+          <td class="py-2 px-3 text-right font-semibold"
+              th:text="${#numbers.formatDecimal(acc.balance, 0, 'COMMA', 0, 'POINT')} + ' ₫'"
+              th:classappend="${acc.balance >= 0} ? 'text-green-600' : 'text-red-600'"></td>
+
+          <td class="py-2 px-3" th:text="${acc.currency}"></td>
+          <td class="py-2 px-3 text-gray-500"
+              th:text="${#temporals.format(acc.createdAt, 'dd/MM/yyyy')}"></td>
+
+          <!-- ⚙️ Hành động -->
+          <td class="py-2 px-3 text-right space-x-2">
+
+            <!-- ✏️ Cập nhật -->
+            <form th:action="@{'/dashboard/accounts/update/' + ${acc.id}}" method="post"
+                  class="inline-flex gap-2 items-center">
+              <input type="text" name="name" th:value="${acc.name}"
+                     class="border rounded px-2 py-1 w-32">
+              <input type="number" step="0.01" name="balance"
+                     th:value="${acc.balance}"
+                     class="border rounded px-2 py-1 w-28">
+              <select name="currency" class="border rounded px-2 py-1">
+                <option value="VND" th:selected="${acc.currency == 'VND'}">VND</option>
+                <option value="USD" th:selected="${acc.currency == 'USD'}">USD</option>
+                <option value="EUR" th:selected="${acc.currency == 'EUR'}">EUR</option>
+              </select>
+              <button type="submit"
+                      class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded">
+                Sửa
+              </button>
+            </form>
+
+            <!-- 🗑️ Xóa -->
+            <a th:href="@{'/dashboard/accounts/delete/' + ${acc.id}}"
+               onclick="return confirm('Bạn có chắc chắn muốn xóa ví này không?');"
+               class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded">
+              Xóa
+            </a>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 💰 Tổng kết -->
+    <p class="text-right text-gray-700 mt-3">
+      Tổng số dư: <span class="font-semibold text-indigo-600"
+                        th:text="${#numbers.formatDecimal(totalBalance, 0, 'COMMA', 0, 'POINT')} + ' ₫'">0 ₫</span>
+    </p>
+  </div>
+</div>
+
+<style>
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-in-out;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>

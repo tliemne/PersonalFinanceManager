@@ -1,72 +1,117 @@
 package com.example.PersonalFinanceManager.controller;
 
-import com.example.PersonalFinanceManager.dto.AccountDTO;
 import com.example.PersonalFinanceManager.model.Account;
+import com.example.PersonalFinanceManager.model.User;
 import com.example.PersonalFinanceManager.service.AccountService;
+import com.example.PersonalFinanceManager.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
-@RestController
-@RequestMapping("/api/accounts")
-@CrossOrigin(origins = "*")
+@Controller
+@RequestMapping("/dashboard/accounts")
 public class AccountController {
+
+    // 🧍‍♂️ User mặc định (tạm thời khi chưa có đăng nhập)
+    private final Long userId = 1L;
 
     @Autowired
     private AccountService accountService;
 
-    // 🟢 Lấy tất cả tài khoản
+    @Autowired
+    private UserService userService;
+
+    // 🟢 Hiển thị danh sách tài khoản của user
     @GetMapping
-    public ResponseEntity<List<AccountDTO>> getAllAccounts() {
-        List<AccountDTO> dtos = accountService.getAllAccounts()
-                .stream()
-                .map(AccountDTO::new) // map Account → AccountDTO (chứa UserDTO)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
-    }
-
-    // 🟢 Lấy account theo ID
-    @GetMapping("/{id}")
-    public ResponseEntity<AccountDTO> getAccountById(@PathVariable Long id) {
-        Optional<Account> account = accountService.getAccountById(id);
-        return account.map(a -> ResponseEntity.ok(new AccountDTO(a)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    // 🟢 Tạo account mới
-    @PostMapping
-    public ResponseEntity<AccountDTO> createAccount(@RequestBody Account account) {
+    public String listAccounts(Model model,
+                               @RequestParam(value = "success", required = false) String success,
+                               @RequestParam(value = "error", required = false) String error) {
         try {
-            Account created = accountService.createAccount(account);
-            return ResponseEntity.ok(new AccountDTO(created));
+            // Lấy user hiện tại
+            User user = userService.getUserById(userId)
+                    .orElseThrow(() -> new IllegalStateException("Không tìm thấy user mặc định"));
+
+//             ✅ (Tùy chọn) Cập nhật lại số dư thực tế theo lịch sử giao dịch
+             accountService.recalculateAllBalances(userId);
+
+            // Chỉ lấy các tài khoản thuộc user này
+            List<Account> accounts = accountService.getAccountsByUserId(userId);
+
+            // ✅ Tính tổng số dư
+            double totalBalance = accounts.stream()
+                    .mapToDouble(Account::getBalance)
+                    .sum();
+
+            // ✅ Truyền dữ liệu cho layout base
+            model.addAttribute("accounts", accounts);
+            model.addAttribute("newAccount", new Account());
+            model.addAttribute("success", success);
+            model.addAttribute("error", error);
+            model.addAttribute("activePage", "accounts");
+            model.addAttribute("totalBalance", totalBalance); // 👈 fix lỗi null ₫
+
+            // ✅ Dùng layout/base.html và nạp fragment dashboard/accounts
+            model.addAttribute("title", "Quản lý tài khoản");
+            model.addAttribute("content", "dashboard/accounts");
+
+            return "layout/base"; // ⬅️ load layout có Tailwind
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            e.printStackTrace();
+            model.addAttribute("error", "Lỗi khi tải danh sách tài khoản!");
+            model.addAttribute("activePage", "accounts");
+            model.addAttribute("title", "Lỗi");
+            model.addAttribute("content", "dashboard/accounts");
+            return "layout/base";
         }
     }
 
-    // 🟢 Cập nhật account
-    @PutMapping("/{id}")
-    public ResponseEntity<AccountDTO> updateAccount(@PathVariable Long id, @RequestBody Account account) {
+    // 🟢 Thêm tài khoản mới
+    @PostMapping("/add")
+    public String addAccount(@ModelAttribute("newAccount") Account account) {
         try {
-            Account updated = accountService.updateAccount(id, account);
-            return ResponseEntity.ok(new AccountDTO(updated));
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
+            User user = userService.getUserById(userId)
+                    .orElseThrow(() -> new IllegalStateException("Không tìm thấy user mặc định"));
+
+            account.setUser(user);
+            accountService.createAccount(account);
+            return "redirect:/dashboard/accounts?success=Thêm ví thành công!";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "redirect:/dashboard/accounts?error=Lỗi khi thêm ví!";
         }
     }
 
-    // 🟢 Xóa account
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteAccount(@PathVariable Long id) {
+    // 🟢 Cập nhật tài khoản
+    @PostMapping("/update/{id}")
+    public String updateAccount(@PathVariable Long id,
+                                @ModelAttribute Account account) {
+        try {
+            accountService.updateAccount(id, account);
+            return "redirect:/dashboard/accounts?success=Cập nhật ví thành công!";
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return "redirect:/dashboard/accounts?error=" + e.getMessage();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "redirect:/dashboard/accounts?error=Lỗi không xác định khi cập nhật!";
+        }
+    }
+
+    // 🟢 Xóa tài khoản
+    @GetMapping("/delete/{id}")
+    public String deleteAccount(@PathVariable Long id) {
         try {
             accountService.deleteAccount(id);
-            return ResponseEntity.noContent().build();
+            return "redirect:/dashboard/accounts?success=Đã xóa ví thành công!";
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return "redirect:/dashboard/accounts?error=" + e.getMessage();
         } catch (Exception e) {
-            return ResponseEntity.notFound().build();
+            e.printStackTrace();
+            return "redirect:/dashboard/accounts?error=Lỗi khi xóa ví!";
         }
     }
 }

@@ -37,10 +37,21 @@
         </div>
     </div>
 
-    <!-- 📊 Biểu đồ -->
-    <div class="bg-white rounded-2xl shadow p-5">
+    <!-- 📊 Phân tích biểu đồ -->
+    <div class="bg-white rounded-2xl shadow p-6">
         <h3 class="text-lg font-semibold text-gray-700 mb-4">Phân tích thu nhập & chi tiêu</h3>
-        <canvas id="incomeExpenseChart" height="120"></canvas>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+            <!-- Biểu đồ cột -->
+            <div class="w-full h-[280px]">
+                <canvas id="incomeExpenseChart"></canvas>
+            </div>
+
+            <!-- Biểu đồ đường -->
+            <div class="w-full h-[280px]">
+                <canvas id="expenseTrendChart"></canvas>
+            </div>
+        </div>
     </div>
 
     <!-- 💸 Giao dịch gần đây -->
@@ -73,41 +84,105 @@
         </div>
     </div>
 
-    <!-- 🧠 Thêm Chart.js NGAY TRONG fragment -->
+    <!-- 📈 Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script th:inline="javascript">
         /*<![CDATA[*/
         document.addEventListener("DOMContentLoaded", function () {
             const income = /*[[${totalIncome ?: 0}]]*/ 0;
             const expense = /*[[${totalExpense ?: 0}]]*/ 0;
+            const transactions = /*[[${transactions}]]*/ [];
 
-            const ctx = document.getElementById('incomeExpenseChart');
-            if (ctx && typeof Chart !== "undefined") {
-                new Chart(ctx, {
-                    type: 'doughnut',
+            // --- Biểu đồ cột: Thu nhập vs Chi tiêu ---
+            const ctx1 = document.getElementById('incomeExpenseChart');
+            if (ctx1) {
+                new Chart(ctx1, {
+                    type: 'bar',
                     data: {
                         labels: ['Thu nhập', 'Chi tiêu'],
                         datasets: [{
+                            label: 'Số tiền (₫)',
                             data: [income, expense],
-                            backgroundColor: ['#4ade80', '#f87171']
+                            backgroundColor: ['#4ade80', '#f87171'],
+                            borderRadius: 8
                         }]
                     },
                     options: {
-                        cutout: '70%',
-                        plugins: { legend: { position: 'bottom' } }
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { callback: v => v.toLocaleString() + ' ₫' }
+                            },
+                            x: { grid: { display: false } }
+                        }
                     }
                 });
-            } else {
-                console.warn("Không tìm thấy Chart.js hoặc canvas!");
+            }
+
+            // --- Biểu đồ đường: Xu hướng chi tiêu theo ngày ---
+            const expenseMap = {};
+            transactions.forEach(t => {
+                if (t.transactionType === 'EXPENSE') {
+                    const date = t.transactionDate;
+                    expenseMap[date] = (expenseMap[date] || 0) + (t.amount || 0);
+                }
+            });
+
+            const sortedDates = Object.keys(expenseMap).sort();
+            const dailyValues = sortedDates.map(d => expenseMap[d]);
+
+            const ctx2 = document.getElementById('expenseTrendChart');
+            if (ctx2 && sortedDates.length > 0) {
+                new Chart(ctx2, {
+                    type: 'line',
+                    data: {
+                        labels: sortedDates.map(d => new Date(d).toLocaleDateString('vi-VN')),
+                        datasets: [{
+                            label: 'Chi tiêu theo ngày (₫)',
+                            data: dailyValues,
+                            fill: true,
+                            tension: 0.3,
+                            backgroundColor: 'rgba(248,113,113,0.2)',
+                            borderColor: '#f87171',
+                            pointBackgroundColor: '#f87171',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'top' },
+                            tooltip: {
+                                callbacks: {
+                                    label: ctx => ctx.raw.toLocaleString() + ' ₫'
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { callback: v => v.toLocaleString() + ' ₫' }
+                            },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
             }
         });
         /*]]>*/
     </script>
-
 </div>
 
 <style>
     .animate-fade-in {
-        transition: all 0.7s ease;
+        animation: fadeIn 0.6s ease;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 </style>

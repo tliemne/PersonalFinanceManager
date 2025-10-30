@@ -11,4 +11,5 @@ public interface AccountServiceImpl {
     List<Account> getAllAccounts();
     Account updateAccount(Long id, Account account);
     void deleteAccount(Long id);
+    List<Account> getAccountsByUserId(Long userId);
 }

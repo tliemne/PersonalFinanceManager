@@ -3,7 +3,7 @@
     <div class="p-6 bg-white rounded-2xl shadow-md">
         <h2 class="text-2xl font-semibold text-blue-600 mb-6">Quản lý Ngân sách</h2>
 
-        <!-- Nút thêm -->
+        <!-- 🔹 Nút thêm -->
         <div class="flex justify-between items-center mb-4">
             <button class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
                     onclick="openAddModal()">
@@ -11,7 +11,7 @@
             </button>
         </div>
 
-        <!-- Bảng -->
+        <!-- 🔹 Bảng ngân sách -->
         <div class="overflow-x-auto">
             <table class="min-w-full border border-gray-200 text-sm text-gray-700">
                 <thead class="bg-blue-100 text-gray-900 font-semibold">
@@ -21,33 +21,34 @@
                     <th class="py-3 px-4 border">Đã dùng</th>
                     <th class="py-3 px-4 border">Tiến độ</th>
                     <th class="py-3 px-4 border">Thời gian</th>
-                    <th class="py-3 px-4 border">Trạng thái</th>
                     <th class="py-3 px-4 border">Thao tác</th>
                 </tr>
                 </thead>
+
                 <tbody>
                 <tr th:each="b : ${budgets}" class="hover:bg-gray-50 transition">
                     <td class="py-2 px-4 border" th:text="${b.categoryName}">Ăn uống</td>
-                    <td class="py-2 px-4 border" th:text="${#numbers.formatDecimal(b.amountLimit, 0, 'COMMA', 2, 'POINT')}">0</td>
-                    <td class="py-2 px-4 border" th:text="${#numbers.formatDecimal(b.usedAmount != null ? b.usedAmount : 0, 0, 'COMMA', 2, 'POINT')}">0</td>
+                    <td class="py-2 px-4 border text-right"
+                        th:text="${#numbers.formatDecimal(b.amountLimit, 0, 'COMMA', 2, 'POINT')}">0</td>
+                    <td class="py-2 px-4 border text-right"
+                        th:text="${#numbers.formatDecimal(b.usedAmount != null ? b.usedAmount : 0, 0, 'COMMA', 2, 'POINT')}">0</td>
+
                     <td class="py-2 px-4 border">
                         <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                             <div class="h-3 rounded-full"
                                  th:classappend="${b.actualProgress > 100} ? 'bg-red-500' : 'bg-blue-500'"
-                                 th:style="'width:' + (${b.progress}) + '%'"></div>
+                                 th:style="'width:' + ${b.progress} + '%'"></div>
                         </div>
-
-                        <span class="text-xs"
+                        <span class="text-xs block text-center mt-1"
                               th:classappend="${b.actualProgress > 100} ? 'text-red-600' : 'text-gray-600'"
-                              th:text="${b.actualProgress != null ? #numbers.formatDecimal(b.actualProgress, 0, 0) + '%' : '0%'}"></span>
+                              th:text="${#numbers.formatDecimal(b.actualProgress, 0, 0) + '%'}"></span>
                     </td>
 
-                    <td class="py-2 px-4 border">
+                    <td class="py-2 px-4 border text-center">
                         <span th:text="${#temporals.format(b.startDate, 'dd/MM/yyyy')}"></span> →
                         <span th:text="${#temporals.format(b.endDate, 'dd/MM/yyyy')}"></span>
                     </td>
-                    <td class="py-2 px-4 border" th:text="${b.status}"
-                        th:classappend="${b.status == 'Đã hết hạn'} ? 'text-red-500' : 'text-green-600'"></td>
+
                     <td class="py-2 px-4 border flex justify-center gap-2">
                         <button class="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600 text-sm"
                                 th:data-id="${b.id}"
@@ -69,8 +70,9 @@
             </table>
         </div>
 
-        <!-- Modal -->
-        <div id="budgetModal" class="fixed inset-0 bg-black bg-opacity-40 hidden flex items-center justify-center z-50">
+        <!-- 🔹 Modal Thêm/Sửa -->
+        <div id="budgetModal"
+             class="fixed inset-0 bg-black bg-opacity-40 hidden flex items-center justify-center z-50">
             <div class="bg-white rounded-2xl shadow-lg w-full max-w-lg p-6 relative">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Thêm / Sửa Ngân sách</h3>
 
@@ -94,7 +96,7 @@
 
                     <div>
                         <label class="block text-sm font-medium mb-1">Đã dùng (VNĐ)</label>
-                        <input type="number" id="usedAmount" name="usedAmount" min="0" required
+                        <input type="number" id="usedAmount" name="usedAmount" min="0" value="0" required
                                class="w-full border rounded-lg p-2 focus:ring focus:ring-blue-200">
                     </div>
 
@@ -112,60 +114,66 @@
                     </div>
 
                     <div class="flex justify-end gap-3 pt-4">
-                        <button type="button" class="px-4 py-2 rounded-lg border hover:bg-gray-100" onclick="closeModal()">Hủy</button>
-                        <button type="submit" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Lưu</button>
+                        <button type="button"
+                                class="px-4 py-2 rounded-lg border hover:bg-gray-100"
+                                onclick="closeModal()">Hủy</button>
+                        <button type="submit"
+                                class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700">
+                            Lưu
+                        </button>
                     </div>
                 </form>
 
                 <!-- Nút đóng -->
-                <button class="absolute top-3 right-3 text-gray-500 hover:text-gray-800" onclick="closeModal()">✕</button>
+                <button class="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
+                        onclick="closeModal()">✕</button>
             </div>
         </div>
     </div>
 
-    <!-- JS -->
+    <!-- 🔹 JS xử lý modal -->
     <script>
         function openAddModal() {
-          resetForm();
-          document.getElementById('budgetModal').classList.remove('hidden');
+            resetForm();
+            document.getElementById('budgetModal').classList.remove('hidden');
         }
 
         function openEditModal(button) {
-          document.getElementById('budgetId').value = button.getAttribute('data-id');
-          document.getElementById('amountLimit').value = button.getAttribute('data-limit');
-          document.getElementById('usedAmount').value = button.getAttribute('data-used');
-          document.getElementById('startDate').value = button.getAttribute('data-start');
-          document.getElementById('endDate').value = button.getAttribute('data-end');
+            document.getElementById('budgetId').value = button.getAttribute('data-id');
+            document.getElementById('amountLimit').value = button.getAttribute('data-limit');
+            document.getElementById('usedAmount').value = button.getAttribute('data-used') || 0;
+            document.getElementById('startDate').value = button.getAttribute('data-start');
+            document.getElementById('endDate').value = button.getAttribute('data-end');
 
-          const category = button.getAttribute('data-category');
-          const select = document.getElementById('categoryId');
-          for (let i = 0; i < select.options.length; i++) {
-            if (select.options[i].text === category) {
-              select.selectedIndex = i;
-              break;
+            const category = button.getAttribute('data-category');
+            const select = document.getElementById('categoryId');
+            for (let i = 0; i < select.options.length; i++) {
+                if (select.options[i].text === category) {
+                    select.selectedIndex = i;
+                    break;
+                }
             }
-          }
 
-          document.getElementById('budgetModal').classList.remove('hidden');
+            document.getElementById('budgetModal').classList.remove('hidden');
         }
 
         function closeModal() {
-          document.getElementById('budgetModal').classList.add('hidden');
+            document.getElementById('budgetModal').classList.add('hidden');
         }
 
         function resetForm() {
-          document.getElementById('budgetId').value = '';
-          document.getElementById('categoryId').value = '';
-          document.getElementById('amountLimit').value = '';
-          document.getElementById('usedAmount').value = '';
-          document.getElementById('startDate').value = '';
-          document.getElementById('endDate').value = '';
+            document.getElementById('budgetId').value = '';
+            document.getElementById('categoryId').value = '';
+            document.getElementById('amountLimit').value = '';
+            document.getElementById('usedAmount').value = '0'; // ✅ mặc định là 0
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
         }
 
         function confirmDelete(id) {
-          if (confirm('Bạn có chắc chắn muốn xóa ngân sách này?')) {
-            window.location.href = '/dashboard/budget/delete/' + id;
-          }
+            if (confirm('Bạn có chắc chắn muốn xóa ngân sách này?')) {
+                window.location.href = '/dashboard/budget/delete/' + id;
+            }
         }
     </script>
 </div>

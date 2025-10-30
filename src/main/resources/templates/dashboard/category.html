@@ -1,15 +1,80 @@
-<h1 class="text-2xl font-semibold mb-6">Danh mục của bạn</h1>
-<div class="grid md:grid-cols-2 gap-6">
-    <div class="bg-white p-6 rounded-xl shadow">
-        <h2 class="font-semibold mb-3 text-green-600">Thu nhập</h2>
-        <ul>
-            <li th:each="c : ${incomeCategories}" th:text="${c.name}" class="p-2 bg-green-50 rounded mb-1"></li>
-        </ul>
-    </div>
-    <div class="bg-white p-6 rounded-xl shadow">
-        <h2 class="font-semibold mb-3 text-red-600">Chi tiêu</h2>
-        <ul>
-            <li th:each="c : ${expenseCategories}" th:text="${c.name}" class="p-2 bg-red-50 rounded mb-1"></li>
-        </ul>
+<div th:fragment="content">
+    <div class="max-w-5xl mx-auto bg-white shadow rounded-lg p-6">
+        <h2 class="text-2xl font-semibold text-gray-700 mb-4">Danh mục của bạn</h2>
+
+        <!-- 🟢 Hiển thị thông báo -->
+        <div th:if="${success}" class="bg-green-100 text-green-700 p-3 rounded mb-4" th:text="${success}"></div>
+        <div th:if="${error}" class="bg-red-100 text-red-700 p-3 rounded mb-4" th:text="${error}"></div>
+
+        <!-- 🟢 Form thêm danh mục -->
+        <form th:action="@{/dashboard/category/add}" method="post" class="flex flex-wrap gap-3 mb-6 items-center">
+            <input type="text" name="name" placeholder="Tên danh mục"
+                   class="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                   required>
+
+            <select name="type" class="border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-indigo-500" required>
+                <option value="INCOME">Thu nhập</option>
+                <option value="EXPENSE">Chi tiêu</option>
+            </select>
+
+            <button type="submit"
+                    class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded transition">
+                Thêm
+            </button>
+        </form>
+
+        <!-- 🟢 Bảng danh mục -->
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse">
+                <thead>
+                <tr class="bg-gray-100 text-gray-700">
+                    <th class="text-left py-2 px-3">Tên danh mục</th>
+                    <th class="text-left py-2 px-3">Loại</th>
+                    <th class="text-left py-2 px-3">Ngày tạo</th>
+                    <th class="text-right py-2 px-3">Hành động</th>
+                </tr>
+                </thead>
+                <tbody>
+                <!-- ✅ Duyệt qua DTO, không còn vòng lặp hoặc lazy-load -->
+                <tr th:each="category : ${categories}" class="border-b hover:bg-gray-50">
+                    <td class="py-2 px-3" th:text="${category.name}"></td>
+
+                    <td class="py-2 px-3">
+                        <span th:text="${category.type == T(com.example.PersonalFinanceManager.model.Category.CategoryType).INCOME ? 'Thu nhập' : 'Chi tiêu'}"
+                              th:classappend="${category.type == T(com.example.PersonalFinanceManager.model.Category.CategoryType).INCOME ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}">
+                        </span>
+                    </td>
+
+                    <!-- ✅ createdAt là LocalDateTime trong DTO -->
+                    <td class="py-2 px-3" th:text="${#temporals.format(category.createdAt, 'dd/MM/yyyy')}"></td>
+
+                    <td class="py-2 px-3 text-right">
+                        <!-- 🟡 Form sửa -->
+                        <form th:action="@{'/dashboard/category/update/' + ${category.id}}" method="post" class="inline-flex gap-2 items-center">
+                            <input type="text" name="name" th:value="${category.name}"
+                                   class="border rounded px-2 py-1 w-32 focus:ring-2 focus:ring-yellow-400">
+
+                            <select name="type" class="border rounded px-2 py-1 focus:ring-2 focus:ring-yellow-400">
+                                <option value="INCOME" th:selected="${category.type.name() == 'INCOME'}">Thu nhập</option>
+                                <option value="EXPENSE" th:selected="${category.type.name() == 'EXPENSE'}">Chi tiêu</option>
+                            </select>
+
+                            <button type="submit"
+                                    class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded transition">
+                                Sửa
+                            </button>
+                        </form>
+
+                        <!-- 🔴 Xóa -->
+                        <a th:href="@{'/dashboard/category/delete/' + ${category.id}}"
+                           class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded ml-2 transition"
+                           onclick="return confirm('Bạn có chắc chắn muốn xóa danh mục này không?');">
+                            Xóa
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>

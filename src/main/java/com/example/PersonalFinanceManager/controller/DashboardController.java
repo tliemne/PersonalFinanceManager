@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 @Controller
 public class DashboardController {
 
-    private final Long userId = 1L; // ⚡ Tạm cố định user_id (có thể thay bằng SecurityContext sau này)
+    private final Long userId = 1L; // ⚡ Tạm thời gắn user mặc định (sau này thay bằng user đăng nhập)
 
     @Autowired private UserService userService;
     @Autowired private TransactionService transactionService;
@@ -33,8 +33,14 @@ public class DashboardController {
 
         double totalIncome = calculateTotal(transactions, Transaction.TransactionType.INCOME);
         double totalExpense = calculateTotal(transactions, Transaction.TransactionType.EXPENSE);
-        double balance = totalIncome - totalExpense;
 
+        // ✅ Tổng số dư thực tế từ các tài khoản (đã được TransactionService cập nhật)
+        double totalAccountBalance = accountService.getAccountsByUserId(userId)
+                .stream()
+                .mapToDouble(a -> Optional.ofNullable(a.getBalance()).orElse(0.0))
+                .sum();
+
+        // 🔹 Giao dịch gần đây
         List<TransactionDTO> recentTransactions = transactions.stream()
                 .filter(t -> t.getTransactionDate() != null)
                 .sorted(Comparator.comparing(Transaction::getTransactionDate).reversed())
@@ -42,10 +48,14 @@ public class DashboardController {
                 .map(this::toDTO)
                 .collect(Collectors.toList());
 
+        // 🔹 Danh sách tài khoản để hiển thị ở Dashboard
+        List<Account> accounts = accountService.getAccountsByUserId(userId);
+
         model.addAttribute("totalIncome", totalIncome);
         model.addAttribute("totalExpense", totalExpense);
-        model.addAttribute("balance", balance);
+        model.addAttribute("balance", totalAccountBalance);
         model.addAttribute("transactions", recentTransactions);
+        model.addAttribute("accounts", accounts);
 
         setViewAttributes(model, "Bảng điều khiển", "Tổng quan", "dashboard/dashboard", "dashboard");
         return "layout/base";
@@ -64,7 +74,7 @@ public class DashboardController {
 
         model.addAttribute("transactions", transactions);
         model.addAttribute("deletedTransactions", deletedTransactions);
-        model.addAttribute("accounts", accountService.getAllAccounts());
+        model.addAttribute("accounts", accountService.getAccountsByUserId(userId));
         model.addAttribute("categories", categoryService.getAllCategories());
         model.addAttribute("transactionDto", new TransactionDTO());
 
@@ -86,7 +96,17 @@ public class DashboardController {
         transaction.setCategory(categoryService.getCategoryById(dto.getCategoryId()).orElse(null));
         transaction.setAmount(Optional.ofNullable(dto.getAmount()).orElse(0.0));
         transaction.setTransactionType(Transaction.TransactionType.valueOf(dto.getTransactionType()));
-        transaction.setStatus(Transaction.TransactionStatus.valueOf(dto.getStatus()));
+        String rawStatus = dto.getStatus();
+        Transaction.TransactionStatus parsedStatus;
+
+        if (rawStatus == null || rawStatus.isEmpty()) {
+            parsedStatus = Transaction.TransactionStatus.COMPLETED; // mặc định
+        } else {
+            parsedStatus = Transaction.TransactionStatus.valueOf(rawStatus.toUpperCase().trim());
+        }
+
+        transaction.setStatus(parsedStatus);
+
         transaction.setDescription(dto.getDescription());
         transaction.setTransactionDate(Optional.ofNullable(dto.getTransactionDate()).orElse(LocalDate.now()));
         transaction.setIsDeleted(Optional.ofNullable(dto.getIsDeleted()).orElse(false));
@@ -126,11 +146,13 @@ public class DashboardController {
 
         double totalIncome = calculateTotal(transactions, Transaction.TransactionType.INCOME);
         double totalExpense = calculateTotal(transactions, Transaction.TransactionType.EXPENSE);
+        double balance = accountService.getAccountsByUserId(userId)
+                .stream().mapToDouble(a -> Optional.ofNullable(a.getBalance()).orElse(0.0)).sum();
 
         model.addAttribute("transactions", transactions.stream().map(this::toDTO).collect(Collectors.toList()));
         model.addAttribute("totalIncome", totalIncome);
         model.addAttribute("totalExpense", totalExpense);
-        model.addAttribute("balance", totalIncome - totalExpense);
+        model.addAttribute("balance", balance);
 
         setViewAttributes(model, "Báo cáo tài chính", "Báo cáo", "dashboard/report", "report");
         return "layout/base";
@@ -175,15 +197,6 @@ public class DashboardController {
         return "redirect:/dashboard/budget";
     }
 
-    // 🗂️ DANH MỤC
-    @GetMapping("/dashboard/category")
-    public String categoryPage(Model model) {
-        model.addAttribute("incomeCategories", categoryService.getIncomeCategories());
-        model.addAttribute("expenseCategories", categoryService.getExpenseCategories());
-        setViewAttributes(model, "Danh mục", "Danh mục của bạn", "dashboard/category", "category");
-        return "layout/base";
-    }
-
     // 🎯 MỤC TIÊU
     @GetMapping("/dashboard/goal")
     public String goalPage(Model model) {
@@ -224,22 +237,7 @@ public class DashboardController {
 
         List<BudgetDTO> nearLimitBudgets = budgetService.getAllBudgets().stream()
                 .map(this::mapToBudgetProgress)
-                .filter(dto -> dto != null
-                        && dto.getAmountLimit() != null
-                        && dto.getAmountLimit() > 0
-                        && dto.getProgress() != null
-                        && !Double.isNaN(dto.getProgress())
-                        && !Double.isInfinite(dto.getProgress()))
                 .filter(dto -> dto.getProgress() >= 80.0)
-                .peek(dto -> {
-                    // ép lại cho chắc, tránh NaN lọt qua
-                    if (Double.isNaN(dto.getActualProgress()) || Double.isInfinite(dto.getActualProgress())) {
-                        dto.setActualProgress(0.0);
-                    }
-                    if (Double.isNaN(dto.getProgress()) || Double.isInfinite(dto.getProgress())) {
-                        dto.setProgress(0.0);
-                    }
-                })
                 .collect(Collectors.toList());
 
         double todayExpense = transactions.stream()
@@ -329,52 +327,35 @@ public class DashboardController {
 
         dto.setUsedAmount(totalSpent);
 
-        // ✅ Chặn lỗi Infinity và NaN hoàn toàn
         double limit = Optional.ofNullable(dto.getAmountLimit()).filter(l -> l > 0).orElse(1.0);
-        double actualProgress = 0.0;
-
-        if (limit > 0.0) {
-            actualProgress = (totalSpent / limit) * 100.0;
-        }
+        double actualProgress = (limit > 0.0) ? (totalSpent / limit) * 100.0 : 0.0;
 
         if (Double.isNaN(actualProgress) || Double.isInfinite(actualProgress) || actualProgress < 0) {
             actualProgress = 0.0;
         }
 
-        // ✅ Nếu vượt quá 100% thì gán 100 nhưng không crash
         dto.setActualProgress(actualProgress);
         dto.setProgress(Math.min(actualProgress, 100.0));
 
         return dto;
     }
 
-
     private String getSpendingAdvice(double todayExpense, double avgExpenseLast7Days, double totalIncome, double totalExpense) {
-        // ✅ Nếu chưa có dữ liệu
         if (totalIncome <= 0 && totalExpense <= 0) {
             return "📊 Chưa có dữ liệu chi tiêu để phân tích.";
         }
-
-        // ✅ Nếu chi tiêu vượt thu nhập
         if (totalExpense > totalIncome) {
             double over = ((totalExpense - totalIncome) / totalIncome) * 100;
             return "⚠️ Cảnh báo: Chi tiêu của bạn đang vượt thu nhập khoảng " + String.format("%.0f%%", over);
         }
-
-        // ✅ Nếu chi tiêu dưới 70% thu nhập
         if (totalExpense < totalIncome * 0.7) {
             return "🎉 Bạn đang chi tiêu rất tiết kiệm so với thu nhập!";
         }
-
-        // ✅ Nếu chi tiêu gần bằng thu nhập
         if (totalExpense >= totalIncome * 0.9) {
             return "⚠️ Lưu ý: Chi tiêu của bạn đang tiến gần mức thu nhập!";
         }
-
-        // ✅ Bình thường
         return "📊 Chi tiêu của bạn đang cân đối so với thu nhập.";
     }
-
 
     private record CategorySpending(String name, double totalAmount) {}
 }

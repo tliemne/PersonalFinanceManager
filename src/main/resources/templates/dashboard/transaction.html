@@ -102,11 +102,9 @@
 
                 <div>
                     <label class="block text-gray-600 mb-1">Trạng thái</label>
-                    <select th:field="*{status}" class="border rounded-md p-2 w-full">
-                        <option value="PENDING">Đang xử lý</option>
-                        <option value="COMPLETED">Hoàn thành</option>
-                        <option value="CANCELLED">Hủy bỏ</option>
-                    </select>
+                    <input type="text" value="Hoàn thành" readonly
+                           class="border rounded-md p-2 w-full bg-gray-100 text-gray-700 cursor-not-allowed" />
+                    <input type="hidden" name="status" value="COMPLETED" />
                 </div>
 
                 <div>

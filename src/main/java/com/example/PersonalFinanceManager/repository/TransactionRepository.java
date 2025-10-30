@@ -21,4 +21,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     // 🔹 Lấy toàn bộ giao dịch chưa bị xoá
     List<Transaction> findByIsDeletedFalse();
     List<Transaction> findByIsDeletedTrue();
+    List<Transaction> findByAccountId(Long accountId);
+    List<Transaction> findByAccount_IdAndIsDeletedFalse(Long accountId);
+    // (Tùy chọn) Nếu cần lọc thêm theo user
+    List<Transaction> findByAccount_UserId(Long userId);
+    List<Transaction> findByUser_IdAndCategory_IdAndIsDeletedFalse(Long userId, Long categoryId);
 }
