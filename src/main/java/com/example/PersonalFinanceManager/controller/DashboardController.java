@@ -197,14 +197,6 @@ public class DashboardController {
         return "redirect:/dashboard/budget";
     }
 
-    // 🎯 MỤC TIÊU
-    @GetMapping("/dashboard/goal")
-    public String goalPage(Model model) {
-        model.addAttribute("goals", goalService.getGoalsByUserId(userId));
-        setViewAttributes(model, "Mục tiêu tài chính", "Mục tiêu", "dashboard/goal", "goal");
-        return "layout/base";
-    }
-
     // ⚙️ CÀI ĐẶT
     @GetMapping("/dashboard/settings")
     public String settingsPage(Model model) {

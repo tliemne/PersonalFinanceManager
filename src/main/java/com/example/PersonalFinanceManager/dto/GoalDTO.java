@@ -9,11 +9,15 @@ public class GoalDTO {
     private String name;
     private Double targetAmount;
     private Double currentAmount;
-    private String priority; // Lưu dạng String cho dễ serialize (LOW, MEDIUM, HIGH)
+    private String priority; // LOW, MEDIUM, HIGH
     private Boolean isDeleted;
     private LocalDate deadline;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    // 👉 Thêm hai trường mới để hiển thị trong bảng
+    private Double progress; // % tiến độ
+    private String status;   // Hoàn thành / Đang thực hiện / Quá hạn
 
     public GoalDTO() {}
 
@@ -32,7 +36,17 @@ public class GoalDTO {
         this.updatedAt = updatedAt;
     }
 
-    // Getters & Setters
+    // 🧩 Thêm constructor đầy đủ (có progress + status)
+    public GoalDTO(Long id, Long userId, String name, Double targetAmount, Double currentAmount,
+                   String priority, Boolean isDeleted, LocalDate deadline,
+                   LocalDateTime createdAt, LocalDateTime updatedAt,
+                   Double progress, String status) {
+        this(id, userId, name, targetAmount, currentAmount, priority, isDeleted, deadline, createdAt, updatedAt);
+        this.progress = progress;
+        this.status = status;
+    }
+
+    // --- Getters & Setters ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -62,4 +76,10 @@ public class GoalDTO {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public Double getProgress() { return progress; }
+    public void setProgress(Double progress) { this.progress = progress; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }

@@ -1,0 +1,262 @@
+<!-- templates/dashboard/goals.html -->
+<div th:fragment="content">
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+        🎯 Quản lý mục tiêu tài chính
+      </h1>
+      <p class="text-gray-500">Thêm, chỉnh sửa, xóa mềm hoặc khôi phục mục tiêu</p>
+    </div>
+    <div class="flex gap-2">
+      <button
+              class="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 shadow transition-all"
+              onclick="openGoalModal()">
+        <i class="fa-solid fa-plus"></i>
+        <span>Thêm mục tiêu</span>
+      </button>
+      <button
+              class="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 border transition-all"
+              onclick="openTrashModal()">
+        <i class="fa-solid fa-trash"></i>
+        <span>Thùng rác</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- =========================== -->
+  <!-- 📋 DANH SÁCH MỤC TIÊU -->
+  <!-- =========================== -->
+  <div class="mb-10">
+    <h2 class="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
+      <i class="fa-solid fa-list-check text-blue-500"></i>
+      Danh sách mục tiêu
+    </h2>
+
+    <table class="w-full border border-gray-300 rounded-lg text-sm shadow-sm">
+      <thead class="bg-gray-100">
+      <tr>
+        <th class="p-3 font-semibold">Tên mục tiêu</th>
+        <th class="p-3 font-semibold">Số tiền mục tiêu</th>
+        <th class="p-3 font-semibold">Hiện có</th>
+        <th class="p-3 font-semibold">Tiến độ</th>
+        <th class="p-3 font-semibold">Trạng thái</th>
+        <th class="p-3 font-semibold">Hạn chót</th>
+        <th class="p-3 font-semibold text-center">Thao tác</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr th:each="goal : ${goals}" class="border-t hover:bg-gray-50">
+        <td class="p-3" th:text="${goal.name}"></td>
+        <td class="p-3" th:text="${goal.targetAmount}"></td>
+        <td class="p-3" th:text="${goal.currentAmount}"></td>
+        <td class="p-3">
+          <span class="text-blue-600 font-medium" th:text="${#numbers.formatDecimal(goal.progress, 0, 2)} + '%'"></span>
+        </td>
+        <td class="p-3">
+      <span th:text="${goal.status}"
+            th:classappend="${goal.status == 'Hoàn thành'} ? 'text-green-600' : (goal.status == 'Quá hạn' ? 'text-red-600' : 'text-yellow-600')">
+      </span>
+        </td>
+        <td class="p-3" th:text="${goal.deadline}"></td>
+        <td class="p-3 text-center space-x-2">
+          <button
+                  class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
+                  th:onclick="'editGoal(' + ${goal.id} + ')'">
+            Sửa
+          </button>
+          <a th:href="@{'/dashboard/goals/delete/' + ${goal.id}}"
+             class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+             onclick="return confirm('Xóa mềm mục tiêu này?')">
+            Xóa
+          </a>
+        </td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- =========================== -->
+  <!-- 🗑️ MODAL THÙNG RÁC -->
+  <!-- =========================== -->
+  <div id="trashModal"
+       class="fixed inset-0 bg-gray-800 bg-opacity-50 hidden items-center justify-center z-50 transition-all">
+    <div class="bg-white rounded-xl shadow-lg w-full max-w-3xl p-6 relative animate-fade-in">
+      <h2 class="text-xl font-bold mb-4 flex items-center gap-2 text-red-600">
+        <i class="fa-solid fa-trash"></i> Thùng rác
+      </h2>
+
+      <table class="w-full border border-gray-300 rounded-lg text-sm shadow-sm">
+        <thead class="bg-gray-100">
+        <tr>
+          <th class="p-3 font-semibold">Tên mục tiêu</th>
+          <th class="p-3 font-semibold">Số tiền mục tiêu</th>
+          <th class="p-3 font-semibold">Hiện có</th>
+          <th class="p-3 font-semibold">Hạn chót</th>
+          <th class="p-3 font-semibold text-center">Thao tác</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="goal : ${deletedGoals}" class="border-t hover:bg-gray-50">
+          <td class="p-3" th:text="${goal.name}"></td>
+          <td class="p-3" th:text="${goal.targetAmount}"></td>
+          <td class="p-3" th:text="${goal.currentAmount}"></td>
+          <td class="p-3" th:text="${goal.deadline}"></td>
+          <td class="p-3 text-center space-x-3">
+            <a th:href="@{'/dashboard/goals/restore/' + ${goal.id}}"
+               class="inline-block text-green-600 hover:text-green-700"
+               title="Khôi phục">
+              <i class="fa-solid fa-recycle text-lg"></i>
+            </a>
+            <a th:href="@{'/dashboard/goals/permanent-delete/' + ${goal.id}}"
+               class="inline-block text-pink-600 hover:text-pink-700"
+               onclick="return confirm('Xóa vĩnh viễn mục tiêu này?')"
+               title="Xóa vĩnh viễn">
+              <i class="fa-solid fa-xmark text-lg"></i>
+            </a>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+
+      <button class="absolute top-3 right-3 text-gray-500 hover:text-gray-800 text-xl"
+              onclick="closeTrashModal()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- =========================== -->
+  <!-- MODAL THÊM / SỬA -->
+  <!-- =========================== -->
+  <div id="goalModal"
+       class="fixed inset-0 bg-gray-800 bg-opacity-50 hidden items-center justify-center z-50 transition-all">
+    <div class="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative animate-fade-in">
+      <h2 class="text-xl font-bold mb-4 flex items-center gap-2" id="modalTitle">
+        <i class="fa-solid fa-bullseye"></i> Thêm mục tiêu
+      </h2>
+      <form th:action="@{/dashboard/goals/save}" th:object="${goal}" method="post">
+        <input type="hidden" th:field="*{id}" id="goalId">
+
+        <div class="mb-3">
+          <label class="block text-gray-700 mb-1">Tên mục tiêu</label>
+          <input type="text" th:field="*{name}" id="goalName"
+                 class="border rounded w-full p-2 focus:ring focus:ring-blue-200" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="block text-gray-700 mb-1">Số tiền mục tiêu</label>
+          <input type="number" th:field="*{targetAmount}" id="goalTarget"
+                 class="border rounded w-full p-2 focus:ring focus:ring-blue-200" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="block text-gray-700 mb-1">Số tiền hiện có</label>
+          <input type="number" th:field="*{currentAmount}" id="goalCurrent"
+                 class="border rounded w-full p-2 focus:ring focus:ring-blue-200">
+        </div>
+
+        <div class="mb-3">
+          <label class="block text-gray-700 mb-1">Mức độ ưu tiên</label>
+          <select th:field="*{priority}" id="goalPriority"
+                  class="border rounded w-full p-2 focus:ring focus:ring-blue-200">
+            <option value="LOW">Thấp</option>
+            <option value="MEDIUM">Trung bình</option>
+            <option value="HIGH">Cao</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="block text-gray-700 mb-1">Hạn chót</label>
+          <input type="date" th:field="*{deadline}" id="goalDeadline"
+                 class="border rounded w-full p-2 focus:ring focus:ring-blue-200">
+        </div>
+
+        <div class="flex justify-end mt-4 space-x-2">
+          <button type="button" onclick="closeGoalModal()"
+                  class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 flex items-center gap-2">
+            <i class="fa-solid fa-xmark"></i> Hủy
+          </button>
+          <button type="submit"
+                  class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i> Lưu
+          </button>
+        </div>
+      </form>
+      <button class="absolute top-3 right-3 text-gray-500 hover:text-gray-800 text-xl"
+              onclick="closeGoalModal()">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- =========================== -->
+  <!-- SCRIPT -->
+  <!-- =========================== -->
+  <script>
+    const modal = document.getElementById('goalModal');
+    const trashModal = document.getElementById('trashModal');
+    const modalTitle = document.getElementById('modalTitle');
+
+    function openGoalModal() {
+      modalTitle.innerHTML = '<i class="fa-solid fa-bullseye"></i> Thêm mục tiêu';
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      clearForm();
+    }
+
+    function closeGoalModal() {
+      modal.classList.add('hidden');
+    }
+
+    function openTrashModal() {
+      trashModal.classList.remove('hidden');
+      trashModal.classList.add('flex');
+    }
+
+    function closeTrashModal() {
+      trashModal.classList.add('hidden');
+    }
+
+    function clearForm() {
+      document.getElementById('goalId').value = '';
+      document.getElementById('goalName').value = '';
+      document.getElementById('goalTarget').value = '';
+      document.getElementById('goalCurrent').value = '';
+      document.getElementById('goalPriority').value = 'MEDIUM';
+      document.getElementById('goalDeadline').value = '';
+    }
+
+    function editGoal(id) {
+      fetch(`/dashboard/goals/get/${id}`)
+        .then(res => res.json())
+        .then(data => {
+          modalTitle.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Chỉnh sửa mục tiêu';
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          document.getElementById('goalId').value = data.id || '';
+          document.getElementById('goalName').value = data.name || '';
+          document.getElementById('goalTarget').value = data.targetAmount || '';
+          document.getElementById('goalCurrent').value = data.currentAmount || '';
+          document.getElementById('goalPriority').value = data.priority || 'MEDIUM';
+          document.getElementById('goalDeadline').value = data.deadline || '';
+        });
+    }
+  </script>
+
+  <style>
+    .animate-fade-in {
+      animation: fadeIn 0.25s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+  </style>
+</div>

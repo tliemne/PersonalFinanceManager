@@ -86,9 +86,9 @@
 <!--             th:classappend="${activePage == 'investment'} ? ' bg-gradient-to-r from-indigo-500 to-blue-400 text-white shadow font-medium' : ''">-->
 <!--            <i class="fas fa-chart-bar w-4"></i><span>Đầu tư</span>-->
 <!--          </a>-->
-          <a th:href="@{/dashboard/goal}"
+          <a th:href="@{/dashboard/goals}"
              class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 transition"
-             th:classappend="${activePage == 'goal'} ? ' bg-gradient-to-r from-indigo-500 to-blue-400 text-white shadow font-medium' : ''">
+             th:classappend="${activePage == 'goals'} ? ' bg-gradient-to-r from-indigo-500 to-blue-400 text-white shadow font-medium' : ''">
             <i class="fas fa-bullseye w-4"></i><span>Mục tiêu tài chính</span>
           </a>
         </div>
@@ -172,28 +172,75 @@
   </nav>
 
   <!-- ========== JS Collapse ========== -->
+  <!-- ========== JS Collapse (Fixed + Remember State) ========== -->
+  <!-- ========== JS Collapse (Fixed + Remember State + Auto Expand Active) ========== -->
+  <!-- ========== JS Collapse (Fixed + Remember State + Auto Expand Active) ========== -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const collapseBtns = document.querySelectorAll('.collapse-btn');
 
+      // --- 1️⃣ Khôi phục trạng thái mở/đóng từ localStorage ---
       collapseBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          const target = document.getElementById(btn.dataset.target);
-          const expanded = btn.getAttribute('aria-expanded') === 'true';
+        const targetId = btn.dataset.target;
+        const target = document.getElementById(targetId);
+        const isOpen = localStorage.getItem(`sidebar-${targetId}`) === 'true';
 
-          collapseBtns.forEach(other => {
-            if (other !== btn) {
-              const t = document.getElementById(other.dataset.target);
-              t.classList.add('hidden');
-              other.setAttribute('aria-expanded', 'false');
-              other.querySelector('.collapse-arrow').classList.remove('rotate-180');
-            }
-          });
+        btn.setAttribute('aria-expanded', isOpen);
+        target.classList.toggle('hidden', !isOpen);
+        btn.querySelector('.collapse-arrow').classList.toggle('rotate-180', isOpen);
+      });
+
+      // --- 2️⃣ Toggle khi click ---
+      collapseBtns.forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.preventDefault();
+          const targetId = btn.dataset.target;
+          const target = document.getElementById(targetId);
+          const expanded = btn.getAttribute('aria-expanded') === 'true';
 
           btn.setAttribute('aria-expanded', !expanded);
           btn.querySelector('.collapse-arrow').classList.toggle('rotate-180', !expanded);
           target.classList.toggle('hidden', expanded);
+
+          // 👉 Lưu trạng thái ngay khi toggle
+          localStorage.setItem(`sidebar-${targetId}`, (!expanded).toString());
         });
+      });
+
+      // --- 3️⃣ Tự động mở nhóm chứa mục đang active ---
+      const activeLink = document.querySelector('a.bg-gradient-to-r');
+      if (activeLink) {
+        const parentGroup = activeLink.closest('div[id^="group-"]');
+        if (parentGroup) {
+          const btn = document.querySelector(`button[data-target="${parentGroup.id}"]`);
+          if (btn) {
+            parentGroup.classList.remove('hidden');
+            btn.setAttribute('aria-expanded', 'true');
+            btn.querySelector('.collapse-arrow').classList.add('rotate-180');
+            localStorage.setItem(`sidebar-${parentGroup.id}`, 'true');
+          }
+        }
+      }
+
+      // 🧠 Giữ trạng thái sidebar khi điều hướng link
+      document.addEventListener("click", function(e) {
+        const link = e.target.closest("a[href]");
+        if (link) {
+          document.querySelectorAll(".collapse-btn").forEach(btn => {
+            const targetId = btn.dataset.target;
+            const expanded = btn.getAttribute("aria-expanded") === "true";
+            localStorage.setItem(`sidebar-${targetId}`, expanded.toString());
+          });
+        }
+      });
+
+      // 🛠️ FIX: Ngăn click link con làm sập nhóm cha (đặc biệt mục tiêu tài chính)
+      document.querySelectorAll('div[id^="group-"] a').forEach(link => {
+        link.addEventListener('click', e => e.stopPropagation());
       });
     });
   </script>
+
+
+
+
