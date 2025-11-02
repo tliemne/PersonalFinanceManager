@@ -17,7 +17,10 @@ import java.util.stream.Collectors;
 @Controller
 @RequestMapping("/dashboard")
 public class GoalController {
-
+    @ModelAttribute
+    public void addUserToModel(Model model) {
+        userService.getUserById(userId).ifPresent(user -> model.addAttribute("user", user));
+    }
     @Autowired
     private GoalService goalService;
 

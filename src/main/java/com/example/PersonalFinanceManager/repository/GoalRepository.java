@@ -25,4 +25,5 @@ public interface GoalRepository extends JpaRepository<Goal, Long> {
     // 🔹 Lấy tất cả mục tiêu đã bị xóa (mọi user)
     List<Goal> findByIsDeletedTrue();
     List<Goal> findByUserAndIsDeletedFalse(User user);
+    long countByUserId(Long userId);
 }

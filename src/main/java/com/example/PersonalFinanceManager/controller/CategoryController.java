@@ -24,7 +24,10 @@ public class CategoryController {
     private UserService userService;
 
     private final Long userId = 1L; // ⚡ Tạm thời hardcode cho test, sau thay bằng SecurityContext
-
+    @ModelAttribute
+    public void addUserToModel(Model model) {
+        userService.getUserById(userId).ifPresent(user -> model.addAttribute("user", user));
+    }
     // 🟢 Hiển thị trang danh mục
     @GetMapping
     public String showCategories(Model model) {

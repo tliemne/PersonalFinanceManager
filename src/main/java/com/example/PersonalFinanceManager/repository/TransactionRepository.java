@@ -41,4 +41,5 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     // Thường hữu dụng: chỉ lấy giao dịch chưa xóa trong khoảng
     List<Transaction> findByUserAndTransactionDateBetweenAndIsDeletedFalse(User user, LocalDate start, LocalDate end);
     List<Transaction> findByUserAndIsDeletedFalse(User user);
+    long countByUserId(Long userId);
 }

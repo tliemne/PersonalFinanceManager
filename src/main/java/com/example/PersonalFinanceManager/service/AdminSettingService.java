@@ -7,12 +7,22 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+
 @Service
 public class AdminSettingService implements AdminSettingServiceImpl {
+
     @Autowired
     private AdminSettingRepository adminSettingRepository;
+
     @Override
     public AdminSetting createAdminSetting(AdminSetting adminSetting) {
+        // Nếu có settingKey trùng thì cập nhật thay vì tạo mới
+        Optional<AdminSetting> existing = adminSettingRepository.findBySettingKey(adminSetting.getSettingKey());
+        if (existing.isPresent()) {
+            AdminSetting setting = existing.get();
+            setting.setSettingValue(adminSetting.getSettingValue());
+            return adminSettingRepository.save(setting);
+        }
         return adminSettingRepository.save(adminSetting);
     }
 
@@ -33,15 +43,24 @@ public class AdminSettingService implements AdminSettingServiceImpl {
             existing.setSettingValue(adminSetting.getSettingValue());
             return adminSettingRepository.save(existing);
         }).orElseThrow(() -> new RuntimeException("AdminSetting not found with id: " + id));
-
     }
 
     @Override
     public void deleteAdminSetting(Long id) {
-        if(!adminSettingRepository.existsById(id))
-        {
-            throw new RuntimeException("AdminSetting not found with id : " +id);
+        if (!adminSettingRepository.existsById(id)) {
+            throw new RuntimeException("AdminSetting not found with id: " + id);
         }
         adminSettingRepository.deleteById(id);
+    }
+
+    // ✅ Dễ dùng hơn cho Controller hoặc Frontend
+    public AdminSetting getByKey(String key) {
+        return adminSettingRepository.findBySettingKey(key)
+                .orElseGet(() -> {
+                    AdminSetting setting = new AdminSetting();
+                    setting.setSettingKey(key);
+                    setting.setSettingValue("");
+                    return adminSettingRepository.save(setting);
+                });
     }
 }

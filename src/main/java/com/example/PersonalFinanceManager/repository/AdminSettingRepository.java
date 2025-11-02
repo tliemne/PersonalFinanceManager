@@ -9,4 +9,5 @@ import java.util.Optional;
 @Repository
 public interface AdminSettingRepository extends JpaRepository<AdminSetting,Long> {
     Optional<AdminSetting> findBySettingKey(String key);
+
 }

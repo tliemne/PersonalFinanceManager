@@ -1,0 +1,79 @@
+<!-- templates/dashboard/profile.html -->
+<div th:fragment="content" class="p-6 space-y-10 animate-fade-in">
+
+  <!-- 🧍‍♂️ Hồ sơ cá nhân -->
+  <div class="flex flex-col md:flex-row items-center md:items-start gap-8 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow">
+
+    <!-- 🖼 Avatar -->
+    <div class="flex flex-col items-center space-y-4 w-full md:w-1/3">
+      <img th:src="${user != null && user.avatarUrl != null ? user.avatarUrl : '/images/default-avatar.png'}"
+           alt="Avatar"
+           class="w-32 h-32 rounded-full border-4 border-emerald-400 shadow-lg object-cover transition-transform hover:scale-105">
+
+      <form th:action="@{/dashboard/profile/update}" method="post" enctype="multipart/form-data" class="space-y-3 w-full">
+        <label class="block">
+          <span class="text-sm text-gray-600 dark:text-gray-300">Chọn ảnh mới</span>
+          <input type="file" name="avatarFile"
+                 class="mt-1 block w-full text-sm text-gray-800 dark:text-gray-200 border border-gray-300 rounded-lg p-2 bg-gray-50 dark:bg-gray-700 focus:ring-emerald-500 focus:border-emerald-500">
+        </label>
+    </div>
+
+    <!-- 🧾 Thông tin cá nhân -->
+    <div class="flex-1 space-y-6 w-full">
+      <div>
+        <h2 class="text-2xl font-semibold text-gray-800 dark:text-white">Thông tin cá nhân</h2>
+        <p class="text-gray-500 text-sm">Cập nhật hồ sơ của bạn</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div>
+          <label class="text-sm text-gray-600 dark:text-gray-300">Họ và tên</label>
+          <input type="text" name="fullName" th:value="${user.fullName}"
+                 class="mt-1 w-full border rounded-lg p-2 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-emerald-500 focus:border-emerald-500">
+        </div>
+
+        <div>
+          <label class="text-sm text-gray-600 dark:text-gray-300">Email</label>
+          <input type="email" name="email" th:value="${user.email}"
+                 class="mt-1 w-full border rounded-lg p-2 bg-gray-50 dark:bg-gray-700 dark:text-white focus:ring-emerald-500 focus:border-emerald-500">
+        </div>
+      </div>
+
+      <button type="submit"
+              class="bg-emerald-500 hover:bg-emerald-600 text-white font-medium py-2 px-5 rounded-lg shadow transition">
+        💾 Lưu thay đổi
+      </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 📊 Thống kê nhanh -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+    <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow text-center">
+      <p class="text-gray-500 text-sm">Tổng số ví</p>
+      <p class="text-2xl font-bold text-emerald-500" th:text="${user.totalAccounts != null ? user.totalAccounts : 0}">0</p>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow text-center">
+      <p class="text-gray-500 text-sm">Tổng giao dịch</p>
+      <p class="text-2xl font-bold text-blue-500" th:text="${user.totalTransactions != null ? user.totalTransactions : 0}">0</p>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 shadow text-center">
+      <p class="text-gray-500 text-sm">Mục tiêu tài chính</p>
+      <p class="text-2xl font-bold text-amber-500" th:text="${user.totalGoals != null ? user.totalGoals : 0}">0</p>
+    </div>
+  </div>
+
+  <!-- 🕓 Thông tin hệ thống -->
+  <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow">
+    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Thông tin hệ thống</h3>
+    <div class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+      <p><strong>Tên đăng nhập:</strong> <span th:text="${user.username}">username</span></p>
+      <p><strong>Ngày tạo tài khoản:</strong>
+        <span th:text="${#temporals.format(user.createdAt, 'dd/MM/yyyy HH:mm')}">N/A</span>
+      </p>
+    </div>
+  </div>
+
+</div>

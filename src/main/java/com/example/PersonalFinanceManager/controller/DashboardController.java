@@ -24,7 +24,10 @@ public class DashboardController {
     @Autowired private CategoryService categoryService;
     @Autowired private GoalService goalService;
     @Autowired private AccountService accountService;
-
+    @ModelAttribute
+    public void addUserToModel(Model model) {
+        userService.getUserById(userId).ifPresent(user -> model.addAttribute("user", user));
+    }
     // 🏠 DASHBOARD CHÍNH
     @GetMapping("/dashboard")
     public String userDashboard(Model model) {
@@ -177,18 +180,6 @@ public class DashboardController {
         if (id != null) budgetService.deleteBudget(id);
         return "redirect:/dashboard/budget";
     }
-
-    // ⚙️ CÀI ĐẶT
-    @GetMapping("/dashboard/settings")
-    public String settingsPage(Model model) {
-        User user = userService.getUserById(userId).orElse(null);
-        UserPreference preferences = userService.getUserPreferenceByUserId(userId);
-        model.addAttribute("user", user);
-        model.addAttribute("preferences", preferences);
-        setViewAttributes(model, "Cài đặt tài khoản", "Cài đặt", "dashboard/settings", "settings");
-        return "layout/base";
-    }
-
     // 📈 PHÂN TÍCH NHANH
     @GetMapping("/dashboard/analysis")
     public String quickAnalysis(Model model) {

@@ -1,98 +1,68 @@
-<h1 class="text-2xl font-semibold mb-6">Cài đặt tài khoản</h1>
+<!-- templates/dashboard/settings.html -->
+<div th:fragment="content" class="p-6 space-y-10 animate-fade-in">
 
-<div class="bg-white p-6 shadow rounded-xl space-y-8">
+  <h2 class="text-2xl font-bold text-gray-800 mb-4">⚙️ Cài đặt hệ thống</h2>
 
-  <!-- 👤 Thông tin tài khoản -->
-  <div>
-    <h2 class="text-lg font-semibold mb-4 text-gray-800">Thông tin cá nhân</h2>
+  <!-- 🌙 CÀI ĐẶT NGƯỜI DÙNG -->
+  <form th:action="@{/settings/update/user}" method="post"
+        th:object="${preference}"
+        class="space-y-4 bg-white p-6 rounded-2xl shadow">
+    <h3 class="font-semibold text-lg">👤 Cài đặt cá nhân</h3>
 
-    <div class="flex items-center gap-4 mb-4">
-      <img th:src="${user.avatarUrl}" alt="Avatar"
-           class="w-20 h-20 rounded-full border border-gray-300 object-cover" />
-      <div>
-        <p class="text-lg font-bold text-gray-900" th:text="${user.fullName}">Thanh Liêm</p>
-        <p class="text-sm text-gray-500" th:text="${user.username}">thanhliem</p>
-        <p class="text-sm text-gray-500" th:text="${user.email}">thanhliem@example.com</p>
-      </div>
+    <div>
+      <label class="block text-sm font-medium">Chủ đề:</label>
+      <select th:field="*{theme}" class="border p-2 rounded w-full">
+        <option value="LIGHT">Sáng</option>
+        <option value="DARK">Tối</option>
+      </select>
     </div>
 
-    <form action="#" method="post" class="grid gap-4 md:grid-cols-2">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Họ và tên</label>
-        <input type="text" name="fullName" th:value="${user.fullName}"
-               class="border rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-500" />
-      </div>
+    <div>
+      <label class="block text-sm font-medium">Đơn vị tiền:</label>
+      <input th:field="*{preferredCurrency}" type="text" class="border p-2 rounded w-full" />
+    </div>
 
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-        <input type="email" name="email" th:value="${user.email}" readonly
-               class="border rounded-lg p-2 w-full bg-gray-100 cursor-not-allowed" />
-      </div>
+    <div>
+      <label class="inline-flex items-center space-x-2">
+        <input th:field="*{notificationEnabled}" type="checkbox" class="accent-emerald-500" />
+        <span>Bật thông báo</span>
+      </label>
+    </div>
 
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu mới</label>
-        <input type="password" name="newPassword" placeholder="••••••••"
-               class="border rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-500" />
-      </div>
+    <button type="submit" class="bg-emerald-500 text-white px-4 py-2 rounded-xl mt-2 hover:bg-emerald-600">
+      💾 Lưu thay đổi
+    </button>
+  </form>
 
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Xác nhận mật khẩu</label>
-        <input type="password" name="confirmPassword" placeholder="••••••••"
-               class="border rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-500" />
-      </div>
 
-      <div class="md:col-span-2 text-right">
-        <button type="submit"
-                class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg shadow">
-          Lưu thay đổi
-        </button>
-      </div>
-    </form>
+  <!-- ⚙️ CÀI ĐẶT QUẢN TRỊ -->
+  <form th:action="@{/settings/update/admin}" method="post"
+        class="space-y-4 bg-white p-6 rounded-2xl shadow">
+    <h3 class="font-semibold text-lg">🛠️ Cài đặt quản trị</h3>
+
+    <div>
+      <label class="block text-sm font-medium">Tên website:</label>
+      <input type="text" name="siteName"
+             th:value="${siteName}" class="border p-2 rounded w-full" />
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium">Giới hạn giao dịch/ngày:</label>
+      <input type="number" name="maxTransaction"
+             th:value="${maxTransaction}" class="border p-2 rounded w-full" />
+    </div>
+
+    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-xl mt-2 hover:bg-blue-600">
+      ⚙️ Cập nhật
+    </button>
+  </form>
+
+  <!-- ✅ Thông báo thành công -->
+  <div th:if="${param.successUser}" class="text-green-600 font-medium">
+    ✅ Cập nhật cài đặt người dùng thành công!
   </div>
-
-  <hr class="border-gray-200" />
-
-  <!-- ⚙️ Tuỳ chọn người dùng -->
-  <div>
-    <h2 class="text-lg font-semibold mb-4 text-gray-800">Tuỳ chọn cá nhân</h2>
-
-    <form action="#" method="post" class="space-y-4">
-      <div class="grid md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Tiền tệ ưa thích</label>
-          <select name="currency"
-                  th:value="${preferences.preferredCurrency}"
-                  class="border rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-500">
-            <option value="VND">VND - Việt Nam đồng</option>
-            <option value="USD">USD - Đô la Mỹ</option>
-            <option value="EUR">EUR - Euro</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Giao diện</label>
-          <select name="theme"
-                  th:value="${preferences.theme}"
-                  class="border rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-500">
-            <option value="LIGHT">Sáng</option>
-            <option value="DARK">Tối</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="flex items-center gap-2 mt-2">
-        <input type="checkbox" name="notificationEnabled" th:checked="${preferences.notificationEnabled}"
-               class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-        <label class="text-sm text-gray-700">Bật thông báo qua email</label>
-      </div>
-
-      <div class="text-right">
-        <button type="submit"
-                class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg shadow">
-          Cập nhật tuỳ chọn
-        </button>
-      </div>
-    </form>
+  <div th:if="${param.successAdmin}" class="text-green-600 font-medium">
+    ✅ Cập nhật cài đặt quản trị thành công!
   </div>
 
 </div>

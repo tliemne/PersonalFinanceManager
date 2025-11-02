@@ -3,11 +3,13 @@ package com.example.PersonalFinanceManager.controller;
 import com.example.PersonalFinanceManager.model.User;
 import com.example.PersonalFinanceManager.repository.UserRepository;
 import com.example.PersonalFinanceManager.service.ReportService;
+import com.example.PersonalFinanceManager.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -26,7 +28,13 @@ public class ReportController {
 
     @Autowired
     private ObjectMapper objectMapper; // ✅ thêm dòng này
-
+    @Autowired
+    private UserService userService;
+    private final Long userId = 1L;
+    @ModelAttribute
+    public void addUserToModel(Model model) {
+        userService.getUserById(userId).ifPresent(user -> model.addAttribute("user", user));
+    }
     // 🔹 1️⃣ Báo cáo tổng hợp
     @GetMapping("/report")
     public String showReport(Model model) {

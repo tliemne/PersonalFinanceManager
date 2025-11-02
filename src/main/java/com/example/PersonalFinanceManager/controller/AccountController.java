@@ -14,7 +14,10 @@ import java.util.List;
 @Controller
 @RequestMapping("/dashboard/accounts")
 public class AccountController {
-
+    @ModelAttribute
+    public void addUserToModel(Model model) {
+        userService.getUserById(userId).ifPresent(user -> model.addAttribute("user", user));
+    }
     // 🧍‍♂️ User mặc định (tạm thời khi chưa có đăng nhập)
     private final Long userId = 1L;
 
