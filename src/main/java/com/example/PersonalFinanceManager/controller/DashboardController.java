@@ -138,25 +138,6 @@ public class DashboardController {
         return "redirect:/dashboard/transaction";
     }
 
-    // 📊 BÁO CÁO
-    @GetMapping("/dashboard/report")
-    public String reportPage(Model model) {
-        List<Transaction> transactions = transactionService.getTransactionsByUserId(userId);
-        if (transactions == null) transactions = new ArrayList<>();
-
-        double totalIncome = calculateTotal(transactions, Transaction.TransactionType.INCOME);
-        double totalExpense = calculateTotal(transactions, Transaction.TransactionType.EXPENSE);
-        double balance = accountService.getAccountsByUserId(userId)
-                .stream().mapToDouble(a -> Optional.ofNullable(a.getBalance()).orElse(0.0)).sum();
-
-        model.addAttribute("transactions", transactions.stream().map(this::toDTO).collect(Collectors.toList()));
-        model.addAttribute("totalIncome", totalIncome);
-        model.addAttribute("totalExpense", totalExpense);
-        model.addAttribute("balance", balance);
-
-        setViewAttributes(model, "Báo cáo tài chính", "Báo cáo", "dashboard/report", "report");
-        return "layout/base";
-    }
 
     // 💰 NGÂN SÁCH
     @GetMapping("/dashboard/budget")

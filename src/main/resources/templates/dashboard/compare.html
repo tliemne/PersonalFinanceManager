@@ -1,0 +1,146 @@
+<!-- templates/dashboard/compare.html -->
+<div th:fragment="content" class="p-6 space-y-10 animate-fade-in">
+
+    <!-- 🧾 Tiêu đề -->
+    <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800 mb-1 flex items-center gap-2">
+                <i class="fa-solid fa-chart-column text-indigo-600"></i>
+                So sánh chi tiêu theo tháng & năm
+            </h1>
+            <p class="text-gray-500">Theo dõi biến động thu nhập và chi tiêu qua thời gian</p>
+        </div>
+    </div>
+
+    <!-- 🔹 Biểu đồ 1: So sánh theo tháng -->
+    <div class="bg-white rounded-2xl shadow border border-gray-100 p-6 hover:shadow-lg transition">
+        <h3 class="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-calendar-alt text-emerald-500"></i>
+            So sánh 6 tháng gần nhất
+        </h3>
+        <div class="relative w-full max-w-4xl mx-auto h-[320px]">
+            <canvas id="monthlyCompareChart"></canvas>
+        </div>
+    </div>
+
+    <!-- 🔹 Biểu đồ 2: So sánh theo năm -->
+    <div class="bg-white rounded-2xl shadow border border-gray-100 p-6 hover:shadow-lg transition">
+        <h3 class="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-calendar text-pink-500"></i>
+            So sánh giữa các năm
+        </h3>
+        <div class="relative w-full max-w-4xl mx-auto h-[280px]">
+            <canvas id="yearlyCompareChart"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<!-- 📈 Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- ✅ Dữ liệu JSON từ controller -->
+<script th:inline="javascript">
+    /*<![CDATA[*/
+        const compareData = JSON.parse(/*[[${compareDataJson}]]*/ '{}');
+        console.log("Compare Data:", compareData);
+
+        // Bảo vệ tránh null
+        const incomeByMonth = compareData.incomeByMonth || {};
+        const expenseByMonth = compareData.expenseByMonth || {};
+        const incomeCompare = compareData.incomeCompare || {};
+        const expenseCompare = compareData.expenseCompare || {};
+
+        /* --- Biểu đồ theo tháng --- */
+        const monthLabels = Object.keys(incomeByMonth);
+        const incomeValues = Object.values(incomeByMonth);
+        const expenseValues = Object.values(expenseByMonth);
+
+        new Chart(document.getElementById("monthlyCompareChart"), {
+          type: "bar",
+          data: {
+            labels: monthLabels,
+            datasets: [
+              {
+                label: "Thu nhập",
+                data: incomeValues,
+                backgroundColor: "rgba(16, 185, 129, 0.7)", // emerald-500
+                borderRadius: 6,
+              },
+              {
+                label: "Chi tiêu",
+                data: expenseValues,
+                backgroundColor: "rgba(239, 68, 68, 0.7)", // red-500
+                borderRadius: 6,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: "top" },
+              tooltip: {
+                callbacks: {
+                  label: ctx => `${ctx.dataset.label}: ${ctx.formattedValue} ₫`
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: value => value.toLocaleString("vi-VN") + " ₫"
+                }
+              }
+            },
+          },
+        });
+
+        /* --- Biểu đồ theo năm --- */
+        const yearLabels = Object.keys(incomeCompare);
+        const incomeYearValues = Object.values(incomeCompare);
+        const expenseYearValues = Object.values(expenseCompare);
+
+        new Chart(document.getElementById("yearlyCompareChart"), {
+          type: "bar",
+          data: {
+            labels: yearLabels,
+            datasets: [
+              {
+                label: "Thu nhập",
+                data: incomeYearValues,
+                backgroundColor: "rgba(52, 211, 153, 0.8)",
+                borderRadius: 6,
+              },
+              {
+                label: "Chi tiêu",
+                data: expenseYearValues,
+                backgroundColor: "rgba(248, 113, 113, 0.8)",
+                borderRadius: 6,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: "top" },
+              tooltip: {
+                callbacks: {
+                  label: ctx => `${ctx.dataset.label}: ${ctx.formattedValue} ₫`
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: value => value.toLocaleString("vi-VN") + " ₫"
+                }
+              }
+            },
+          },
+        });
+    /*]]>*/
+</script>

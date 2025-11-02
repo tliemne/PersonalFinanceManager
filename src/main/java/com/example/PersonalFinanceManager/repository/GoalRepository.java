@@ -1,6 +1,7 @@
 package com.example.PersonalFinanceManager.repository;
 
 import com.example.PersonalFinanceManager.model.Goal;
+import com.example.PersonalFinanceManager.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -23,4 +24,5 @@ public interface GoalRepository extends JpaRepository<Goal, Long> {
 
     // 🔹 Lấy tất cả mục tiêu đã bị xóa (mọi user)
     List<Goal> findByIsDeletedTrue();
+    List<Goal> findByUserAndIsDeletedFalse(User user);
 }

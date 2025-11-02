@@ -47,8 +47,11 @@
       <tbody>
       <tr th:each="goal : ${goals}" class="border-t hover:bg-gray-50">
         <td class="p-3" th:text="${goal.name}"></td>
-        <td class="p-3" th:text="${goal.targetAmount}"></td>
-        <td class="p-3" th:text="${goal.currentAmount}"></td>
+
+        <!-- ✅ Định dạng số tiền -->
+        <td class="p-3" th:text="${#numbers.formatDecimal(goal.targetAmount, 0, 'COMMA', 0, 'POINT')} + ' ₫'"></td>
+        <td class="p-3" th:text="${#numbers.formatDecimal(goal.currentAmount, 0, 'COMMA', 0, 'POINT')} + ' ₫'"></td>
+
         <td class="p-3">
           <span class="text-blue-600 font-medium" th:text="${#numbers.formatDecimal(goal.progress, 0, 2)} + '%'"></span>
         </td>
@@ -98,8 +101,11 @@
         <tbody>
         <tr th:each="goal : ${deletedGoals}" class="border-t hover:bg-gray-50">
           <td class="p-3" th:text="${goal.name}"></td>
-          <td class="p-3" th:text="${goal.targetAmount}"></td>
-          <td class="p-3" th:text="${goal.currentAmount}"></td>
+
+          <!-- ✅ Định dạng số tiền trong thùng rác -->
+          <td class="p-3" th:text="${#numbers.formatDecimal(goal.targetAmount, 0, 'COMMA', 0, 'POINT')} + ' ₫'"></td>
+          <td class="p-3" th:text="${#numbers.formatDecimal(goal.currentAmount, 0, 'COMMA', 0, 'POINT')} + ' ₫'"></td>
+
           <td class="p-3" th:text="${goal.deadline}"></td>
           <td class="p-3 text-center space-x-3">
             <a th:href="@{'/dashboard/goals/restore/' + ${goal.id}}"
